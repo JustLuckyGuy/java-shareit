@@ -1,18 +1,17 @@
 package ru.practicum.shareit.user.repository;
 
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.SameEmailException;
 import ru.practicum.shareit.user.model.User;
 
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Optional;
 
-@Repository
+@Component
 public class UserRepositoryIml implements UserRepository {
-    private final Comparator<Long> comparator = Comparator.comparing(ob -> ob);
+    private static long id = 1;
     private final HashMap<Long, User> users = new HashMap<>();
 
     @Override
@@ -28,13 +27,9 @@ public class UserRepositoryIml implements UserRepository {
 
     @Override
     public User save(User user) {
-        long id = users.values().stream()
-                .map(User::getId)
-                .max(comparator)
-                .orElse((long) 0) + 1;
-
         user.setId(id);
         users.put(id, user);
+        id++;
         return user;
     }
 

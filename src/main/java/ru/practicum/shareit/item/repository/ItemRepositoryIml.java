@@ -1,6 +1,6 @@
 package ru.practicum.shareit.item.repository;
 
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.model.Item;
 
@@ -8,9 +8,9 @@ import ru.practicum.shareit.item.model.Item;
 import java.util.*;
 
 
-@Repository
+@Component
 public class ItemRepositoryIml implements ItemRepository {
-    private final Comparator<Long> comparator = Comparator.comparing(ob -> ob);
+    private static long id = 1;
     private final HashMap<Long, Item> items = new HashMap<>();
 
     @Override
@@ -26,13 +26,9 @@ public class ItemRepositoryIml implements ItemRepository {
 
     @Override
     public Item save(Item item) {
-        long id = items.values().stream()
-                .map(Item::getId)
-                .max(comparator)
-                .orElse((long) 0) + 1;
-
         item.setId(id);
         items.put(id, item);
+        id++;
         return item;
     }
 
