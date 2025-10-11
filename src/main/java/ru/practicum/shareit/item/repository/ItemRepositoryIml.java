@@ -9,7 +9,7 @@ import java.util.*;
 
 
 @Repository
-public class ItemRepositoryIml implements ItemRepository{
+public class ItemRepositoryIml implements ItemRepository {
     private final Comparator<Long> comparator = Comparator.comparing(ob -> ob);
     private final HashMap<Long, Item> items = new HashMap<>();
 
@@ -72,7 +72,7 @@ public class ItemRepositoryIml implements ItemRepository{
     }
 
     @Override
-    public boolean checkOwner(Long userId, Long itemId){
+    public boolean checkOwner(Long userId, Long itemId) {
         if (items.containsKey(itemId)) {
             return Objects.equals(items.get(itemId).getOwner(), userId);
         } else {
@@ -80,14 +80,11 @@ public class ItemRepositoryIml implements ItemRepository{
         }
     }
 
-    private void isItemExist(Long itemId){
-        if(!items.containsKey(itemId)){
-            throw new NotFoundException("Пользователь с id: "+ itemId +" не найден");
+    private void isItemExist(Long itemId) {
+        if (!items.containsKey(itemId)) {
+            throw new NotFoundException("Пользователь с id: " + itemId + " не найден");
         }
     }
-
-
-
 
 
 }

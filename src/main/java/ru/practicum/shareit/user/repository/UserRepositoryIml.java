@@ -54,14 +54,14 @@ public class UserRepositoryIml implements UserRepository {
         users.remove(userId);
     }
 
-    private void isUserExist(Long userId){
-        if(!users.containsKey(userId)){
-            throw new NotFoundException("Пользователь с id: "+ userId +" не найден");
+    private void isUserExist(Long userId) {
+        if (!users.containsKey(userId)) {
+            throw new NotFoundException("Пользователь с id: " + userId + " не найден");
         }
     }
 
     @Override
-    public void isExistsByEmail(String email){
+    public void isExistsByEmail(String email) {
         if (email != null) {
             Optional<User> sameEmail = users.values().stream()
                     .filter(user -> user.getEmail().equals(email))

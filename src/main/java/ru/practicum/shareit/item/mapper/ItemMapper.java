@@ -7,7 +7,7 @@ import ru.practicum.shareit.item.model.Item;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ItemMapper {
-    public static ItemDto mapToDTO(Item item){
+    public static ItemDto mapToDTO(Item item) {
         return ItemDto.builder()
                 .id(item.getId())
                 .name(item.getName())
@@ -16,7 +16,7 @@ public final class ItemMapper {
                 .build();
     }
 
-    public static Item mapToItem(Long userId, ItemDto itemDto){
+    public static Item mapToItem(Long userId, ItemDto itemDto) {
         return Item.builder()
                 .owner(userId)
                 .name(itemDto.getName())

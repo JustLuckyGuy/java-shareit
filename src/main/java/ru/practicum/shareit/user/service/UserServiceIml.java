@@ -18,7 +18,7 @@ public class UserServiceIml implements UserService {
 
     @Override
     public List<UserDTO> allUsers() {
-        log.info("Пользователи: {}", userRepository.findAllUsers() );
+        log.info("Пользователи: {}", userRepository.findAllUsers());
         return userRepository.findAllUsers().stream().map(UserMapper::mapToDTO).toList();
     }
 

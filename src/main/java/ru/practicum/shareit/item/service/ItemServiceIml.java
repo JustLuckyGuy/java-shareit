@@ -16,13 +16,13 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ItemServiceIml implements ItemService{
+public class ItemServiceIml implements ItemService {
     private final UserRepository userRepository;
     private final ItemRepository itemRepository;
 
     @Override
     public List<ItemDto> allItems() {
-        log.info("Пользователи: {}", userRepository.findAllUsers() );
+        log.info("Пользователи: {}", userRepository.findAllUsers());
         return itemRepository.findAllItems().stream().map(ItemMapper::mapToDTO).toList();
     }
 
@@ -32,7 +32,7 @@ public class ItemServiceIml implements ItemService{
     }
 
     @Override
-    public List<ItemDto> itemsOfUser(Long userId){
+    public List<ItemDto> itemsOfUser(Long userId) {
         checkUser(userId);
         return itemRepository.getUserItems(userId).stream()
                 .map(ItemMapper::mapToDTO)
@@ -40,7 +40,7 @@ public class ItemServiceIml implements ItemService{
     }
 
     @Override
-    public List<ItemDto> searchItem(String text){
+    public List<ItemDto> searchItem(String text) {
         return itemRepository.itemSearch(text).stream()
                 .map(ItemMapper::mapToDTO)
                 .toList();
@@ -74,8 +74,8 @@ public class ItemServiceIml implements ItemService{
         }
     }
 
-    private void checkUser(Long userId){
-        if(userRepository.findUserById(userId) == null){
+    private void checkUser(Long userId) {
+        if (userRepository.findUserById(userId) == null) {
             throw new NotFoundException("Данного пользователя не существует");
         }
     }

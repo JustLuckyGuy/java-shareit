@@ -37,7 +37,7 @@ public class ErrorHandler {
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.FORBIDDEN)
-    public Map<String, String> handleConditionsNotMatchException(final ConditionsNotMatchException e){
+    public Map<String, String> handleConditionsNotMatchException(final ConditionsNotMatchException e) {
         log.error("Произошла ошибка с владельцем предмета {}", e.getMessage());
         return Map.of(ERROR, e.getMessage());
     }

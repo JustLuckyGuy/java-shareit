@@ -39,20 +39,21 @@ public class ItemController {
 
     @PostMapping
     public ItemDto saveItem(@RequestHeader("X-Sharer-User-Id") long userId,
-            @Validated @RequestBody ItemDto itemDto) {
+                            @Validated @RequestBody ItemDto itemDto) {
         return itemService.createItem(userId, itemDto);
     }
 
     @PatchMapping("/{itemId}")
     public ItemDto updateItem(@RequestHeader("X-Sharer-User-Id") long userId,
-            @PathVariable long itemId,
-            @RequestBody ItemDto itemDto) {
+                              @PathVariable long itemId,
+                              @RequestBody ItemDto itemDto) {
         return itemService.updateItem(userId, itemId, itemDto);
     }
 
     @DeleteMapping("/{id}")
     public void removeItem(@RequestHeader("X-Sharer-User-Id") long userId,
-            @PathVariable @NotNull @Positive Long id){itemService.deleteItem(userId, id);
+                           @PathVariable @NotNull @Positive Long id) {
+        itemService.deleteItem(userId, id);
     }
 
 
