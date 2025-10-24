@@ -22,6 +22,13 @@ public class ErrorHandler {
     }
 
     @ExceptionHandler
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleBadRequest(final BadRequestException e) {
+        log.error("Неправильный запрос {}", e.getMessage());
+        return Map.of(ERROR, e.getMessage());
+    }
+
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Map<String, String> handleNotFound(final NotFoundException e) {
         log.error("Не был найден объект {}", e.getMessage());
