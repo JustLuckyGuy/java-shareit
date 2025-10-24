@@ -7,7 +7,9 @@ import ru.practicum.shareit.user.model.User;
 
 import java.time.Instant;
 
-@Getter @Setter @ToString
+@Getter
+@Setter
+@ToString
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

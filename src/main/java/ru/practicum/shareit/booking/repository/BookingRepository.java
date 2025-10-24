@@ -2,7 +2,10 @@ package ru.practicum.shareit.booking.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.model.StatusBook;
+
 
 import java.time.Instant;
 import java.util.List;
@@ -46,10 +49,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     boolean existsByItemId(long itemId);
 
-    @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END " +
-            "FROM Booking b " +
-            "JOIN b.booker br " +
-            "WHERE br.id = ?1 AND " +
-            "b.endDate < CURRENT_TIMESTAMP")
-    boolean existsValidBookingForAddComment(long userId);
+    @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.booker.id = :userId " +
+            "AND b.item.id = :itemId AND b.endDate <= CURRENT_TIMESTAMP " +
+            "AND b.status = :status")
+    boolean existsByBookerIdAndItemIdAndEndBefore(@Param("userId") Long userId,
+                                                  @Param("itemId") Long itemId,
+                                                  @Param("status") StatusBook status);
 }

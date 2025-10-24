@@ -1,6 +1,7 @@
 package ru.practicum.shareit.booking.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.ResponseBookingDto;
@@ -24,13 +25,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-public class BookingServiceImpl implements BookingService{
+public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
-    private final  UserRepository userRepository;
-    private final  ItemRepository itemRepository;
-    private final  ItemService itemService;
+    private final UserRepository userRepository;
+    private final ItemRepository itemRepository;
+    private final ItemService itemService;
     Comparator<Booking> comparator = (o1, o2) -> {
         if (o1.getStartDate().isAfter(o2.getStartDate())) {
             return 3;
@@ -56,22 +58,19 @@ public class BookingServiceImpl implements BookingService{
         validated(booking);
 
         booking.setStatus(StatusBook.WAITING);
-
         return prepareAndMakeBookingDto(bookingRepository.save(booking));
     }
 
     @Override
     public ResponseBookingDto changeBookStatus(long ownerId, long bookingId, boolean approved) {
-        StatusBook  status = approved ? StatusBook.APPROVED : StatusBook.REJECTED;
+        StatusBook status = approved ? StatusBook.APPROVED : StatusBook.REJECTED;
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NotFoundException("Бронь с id '" + bookingId + "' не найдена"));
 
         if (booking.getItem().getOwner().getId() != ownerId) {
             throw new ConditionsNotMatchException("Только владелец может изменять статус брони");
         }
-
         booking.setStatus(status);
-
         return prepareAndMakeBookingDto(bookingRepository.save(booking));
     }
 
@@ -123,7 +122,7 @@ public class BookingServiceImpl implements BookingService{
         return BookingMapper.mapToBooking(booker, item, requestBookingDto);
     }
 
-    private void validated(Booking booking){
+    private void validated(Booking booking) {
         if (booking.getEndDate().isBefore(booking.getStartDate())) {
             throw new BadRequestException("Окончание бронирования не может быть раньше начала бронирования");
         }
@@ -141,7 +140,7 @@ public class BookingServiceImpl implements BookingService{
         }
     }
 
-    private List<Booking> getBookingsByState(Long id, String state, String ownerOrUser){
+    private List<Booking> getBookingsByState(Long id, String state, String ownerOrUser) {
         Instant now = Instant.now();
         Map<String, Function<Long, List<Booking>>> userBookingsMap = Map.of(
                 "current", userId -> bookingRepository.findByBookerIdAndStartDateBeforeAndEndDateAfter(id, now, now),

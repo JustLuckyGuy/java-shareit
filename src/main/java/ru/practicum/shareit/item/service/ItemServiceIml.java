@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.model.StatusBook;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.exception.BadRequestException;
 import ru.practicum.shareit.exception.ConditionsNotMatchException;
@@ -53,7 +54,7 @@ public class ItemServiceIml implements ItemService {
 
     @Override
     public ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto) {
-        if(!itemRepository.existsByIdAndOwnerId(itemId, userId)) {
+        if (!itemRepository.existsByIdAndOwnerId(itemId, userId)) {
             throw new ConditionsNotMatchException("Только владелец может изменять данные предмета");
         }
         Item olditem = itemRepository.findById(itemId).orElseThrow(() -> new NotFoundException("Предмет не найден"));
@@ -63,7 +64,7 @@ public class ItemServiceIml implements ItemService {
 
     @Override
     public void deleteItem(Long userId, Long itemId) {
-        if(!itemRepository.existsByIdAndOwnerId(itemId, userId)) {
+        if (!itemRepository.existsByIdAndOwnerId(itemId, userId)) {
             throw new ConditionsNotMatchException("Только владелец может изменять данные предмета");
         }
         itemRepository.deleteById(itemId);
@@ -79,7 +80,7 @@ public class ItemServiceIml implements ItemService {
 
     @Override
     public List<ItemDto> searchItem(String text) {
-        if(text.isBlank()){
+        if (text.isBlank()) {
             return List.of();
         }
         return itemRepository.findByNameContainingOrDescriptionContainingAndAvailableTrue(text.toLowerCase()).stream()
@@ -89,7 +90,7 @@ public class ItemServiceIml implements ItemService {
 
     @Override
     public CommentDTO addComment(long userId, long itemId, CommentDTO commentDto) {
-        if (!bookingRepository.existsValidBookingForAddComment(userId)) {
+        if (!bookingRepository.existsByBookerIdAndItemIdAndEndBefore(userId, itemId, StatusBook.APPROVED)) {
             throw new BadRequestException("Чтобы оставить отзыв на предмет," +
                     " нужно воспользоваться им");
         }

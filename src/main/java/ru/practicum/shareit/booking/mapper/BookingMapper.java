@@ -12,11 +12,10 @@ import ru.practicum.shareit.user.model.User;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class BookingMapper {
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy hh:mm:ss");
 
     public static Booking mapToBooking(User booker, Item item, BookingDto requestBookingDto) {
         return Booking.builder()

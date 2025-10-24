@@ -27,12 +27,12 @@ public class UserServiceIml implements UserService {
     @Override
     public UserDTO userById(Long userId) {
         return UserMapper.mapToDTO(userRepository.findById(userId)
-                .orElseThrow(()->new NotFoundException("Пользователь не найден")));
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден")));
     }
 
     @Override
     public UserDTO createUser(UserDTO user) {
-        if(userRepository.existsByEmail(user.getEmail())){
+        if (userRepository.existsByEmail(user.getEmail())) {
             throw new SameEmailException("Пользователь с этим email уже существует");
         }
 
@@ -42,11 +42,11 @@ public class UserServiceIml implements UserService {
 
     @Override
     public UserDTO updateUser(Long userId, UserDTO user) {
-        if(userRepository.existsByEmail(user.getEmail())){
+        if (userRepository.existsByEmail(user.getEmail())) {
             throw new SameEmailException("Данный email уже занят");
         }
         User oldUser = userRepository.findById(userId)
-                .orElseThrow(()->new NotFoundException("Пользователь не найден"));
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
         oldUser = UserMapper.updateFields(oldUser, UserMapper.mapToUser(user));
         return UserMapper.mapToDTO(userRepository.save(oldUser));
     }

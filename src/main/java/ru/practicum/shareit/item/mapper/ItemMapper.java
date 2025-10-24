@@ -36,11 +36,11 @@ public final class ItemMapper {
                 .build();
     }
 
-    public static Item updateFields(Item oldItem, Item newItem){
-                oldItem.setName(newItem.getName() == null ? oldItem.getName() : newItem.getName());
-                oldItem.setOwner(newItem.getOwner() == null ? oldItem.getOwner() : newItem.getOwner());
-                oldItem.setDescription(newItem.getDescription() == null ? oldItem.getDescription() : newItem.getDescription());
-                oldItem.setAvailable(newItem.getAvailable() == null ? oldItem.getAvailable() : newItem.getAvailable());
+    public static Item updateFields(Item oldItem, Item newItem) {
+        oldItem.setName(newItem.getName() == null ? oldItem.getName() : newItem.getName());
+        oldItem.setOwner(newItem.getOwner() == null ? oldItem.getOwner() : newItem.getOwner());
+        oldItem.setDescription(newItem.getDescription() == null ? oldItem.getDescription() : newItem.getDescription());
+        oldItem.setAvailable(newItem.getAvailable() == null ? oldItem.getAvailable() : newItem.getAvailable());
         return oldItem;
     }
 }
