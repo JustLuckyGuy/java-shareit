@@ -23,4 +23,9 @@ public final class UserMapper {
                 .build();
     }
 
+    public static User updateFields(User oldUser, User newUser) {
+        oldUser.setEmail(newUser.getEmail() == null ? oldUser.getEmail() : newUser.getEmail());
+        oldUser.setName(newUser.getName() == null ? oldUser.getName() : newUser.getName());
+        return oldUser;
+    }
 }

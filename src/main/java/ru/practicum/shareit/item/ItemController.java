@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.item.dto.CommentDTO;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.service.ItemService;
 
@@ -33,7 +34,7 @@ public class ItemController {
     }
 
     @GetMapping("/search")
-    public List<ItemDto> itemSearch(@RequestParam String text) {
+    public List<ItemDto> itemSearch(@RequestParam() String text) {
         return itemService.searchItem(text);
     }
 
@@ -54,6 +55,13 @@ public class ItemController {
     public void removeItem(@RequestHeader("X-Sharer-User-Id") long userId,
                            @PathVariable @NotNull @Positive Long id) {
         itemService.deleteItem(userId, id);
+    }
+
+    @PostMapping("/{itemId}/comment")
+    public CommentDTO addComment(@RequestHeader("X-Sharer-User-Id") long userId,
+                                 @PathVariable long itemId,
+                                 @RequestBody CommentDTO commentDto) {
+        return itemService.addComment(userId, itemId, commentDto);
     }
 
 
