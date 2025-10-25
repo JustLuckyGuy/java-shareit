@@ -13,14 +13,13 @@ import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.exception.BadRequestException;
 import ru.practicum.shareit.exception.ConditionsNotMatchException;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
-import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -31,7 +30,6 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final ItemRepository itemRepository;
-    private final ItemService itemService;
 
 
     @Override
@@ -92,9 +90,8 @@ public class BookingServiceImpl implements BookingService {
 
 
     private ResponseBookingDto prepareAndMakeBookingDto(Booking booking) {
-        ItemDto itemDto = itemService.itemById(booking.getItem().getId());
 
-        return BookingMapper.mapToDTO(itemDto, booking);
+        return BookingMapper.mapToDTO(ItemMapper.mapToItemBookingDTO(booking.getItem()), booking);
     }
 
 
@@ -110,16 +107,15 @@ public class BookingServiceImpl implements BookingService {
 
 
     private List<Booking> getBookingsByState(Long id, String state, String ownerOrUser) {
-        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now();
         Sort newestFirst = Sort.by(Sort.Direction.DESC, "startDate");
 
-        if ("all".equalsIgnoreCase(state)) {
-            return ownerOrUser.equals("user")
-                    ? bookingRepository.findByBookerId(id, newestFirst)
-                    : bookingRepository.findByItemOwnerId(id);
-        }
 
         return switch (state.toLowerCase()) {
+            case "all" -> ownerOrUser.equals("user")
+                    ? bookingRepository.findByBookerId(id, newestFirst)
+                    : bookingRepository.findByItemOwnerId(id);
+
             case "current" -> ownerOrUser.equals("user")
                     ? bookingRepository.findByBookerIdAndStartDateBeforeAndEndDateAfter(id, now, now, newestFirst)
                     : bookingRepository.findByItemOwnerIdAndStartDateBeforeAndEndDateAfter(id, now, now, newestFirst);
@@ -140,9 +136,7 @@ public class BookingServiceImpl implements BookingService {
                     ? bookingRepository.findByBookerIdAndStatusContaining(id, "REJECTED", newestFirst)
                     : bookingRepository.findByItemOwnerIdAndStatusContaining(id, "REJECTED", newestFirst);
 
-            default -> ownerOrUser.equals("user")
-                    ? bookingRepository.findByBookerId(id, newestFirst)
-                    : bookingRepository.findByItemOwnerId(id);
+            default -> throw new BadRequestException("Не верно введенный статус");
         };
     }
 

@@ -20,14 +20,14 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.chrono.ChronoLocalDateTime;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
 
 @Slf4j
 @Service
@@ -48,9 +48,12 @@ public class ItemServiceIml implements ItemService {
 
         List<Comment> allComments = commentRepository.findByItemIn(items, Sort.by(Sort.Direction.DESC, "created"));
         Map<Item, List<Comment>> commentsByItem = allComments.stream()
-                .collect(Collectors.groupingBy(Comment::getItem));
+                .collect(groupingBy(Comment::getItem));
 
-        Map<Item, List<Booking>> bookingsMap = new HashMap<>();
+        Map<Item, List<Booking>> bookingsMap = bookingRepository.findApprovedForItems(items, Sort.by(Sort.Direction.DESC, "startDate"))
+                .stream()
+                .collect(groupingBy(Booking::getItem, toList()));
+
         return items.stream()
                 .map(item -> prepareAndMakeItemDto(item, bookingsMap, commentsByItem, false))
                 .toList();
@@ -160,7 +163,6 @@ public class ItemServiceIml implements ItemService {
 
         List<Booking> itemBookings = bookingsByItem.getOrDefault(item, List.of());
 
-
         List<Comment> itemComments = commentsByItem.getOrDefault(item, List.of());
         List<CommentDTO> commentDTOs = itemComments.stream()
                 .map(CommentMapper::mapToDTO)
@@ -173,22 +175,21 @@ public class ItemServiceIml implements ItemService {
             latestBooking = findLastBooking(itemBookings);
             nextBooking = findNextBooking(itemBookings);
         }
-
         return ItemMapper.mapToDTO(item, commentDTOs, nextBooking, latestBooking);
     }
 
     private Booking findNextBooking(List<Booking> bookings) {
-        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now();
         return bookings.stream()
-                .filter(booking -> booking.getStartDate().isAfter(ChronoLocalDateTime.from(now)))
+                .filter(booking -> booking.getStartDate().isAfter(now))
                 .min(Comparator.comparing(Booking::getStartDate))
                 .orElse(null);
     }
 
     private Booking findLastBooking(List<Booking> bookings) {
-        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now();
         return bookings.stream()
-                .filter(booking -> booking.getEndDate().isBefore(ChronoLocalDateTime.from(now)))
+                .filter(booking -> booking.getEndDate().isBefore(now))
                 .max(Comparator.comparing(Booking::getEndDate))
                 .orElse(null);
     }

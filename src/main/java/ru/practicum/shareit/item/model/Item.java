@@ -31,6 +31,4 @@ public class Item {
     @Column(name = "available")
     private Boolean available;
 
-    @Column(name = "book_count")
-    private Integer bookCount;
 }
