@@ -19,6 +19,7 @@ public class Item {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
+    @ToString.Exclude
     private User owner;
 
     @Column(name = "name")

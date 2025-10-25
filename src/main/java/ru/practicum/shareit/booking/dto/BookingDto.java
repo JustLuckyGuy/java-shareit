@@ -1,11 +1,11 @@
 package ru.practicum.shareit.booking.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.*;
 import lombok.Builder;
 import lombok.Data;
 import ru.practicum.shareit.booking.model.StatusBook;
+
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -14,8 +14,8 @@ public class BookingDto {
     @Positive
     private Long itemId;
     private StatusBook status;
-    @NotBlank
-    private String start;
-    @NotBlank
-    private String end;
+    @FutureOrPresent
+    private LocalDateTime start;
+    @Future
+    private LocalDateTime end;
 }

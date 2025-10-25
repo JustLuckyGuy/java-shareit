@@ -3,7 +3,6 @@ package ru.practicum.shareit.item.service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.item.dto.CommentDTO;
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.model.Item;
 
 import java.util.List;
 
@@ -29,9 +28,4 @@ public interface ItemService {
     @Transactional
     CommentDTO addComment(long userId, long itemId, CommentDTO commentDto);
 
-    @Transactional
-    ItemDto prepareAndMakeItemDto(Item item, boolean initDate);
-
-    @Transactional
-    Item prepareAndMakeItemPOJO(long userId, ItemDto itemDto);
 }

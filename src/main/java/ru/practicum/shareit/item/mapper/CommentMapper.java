@@ -22,7 +22,7 @@ public final class CommentMapper {
     public static CommentDTO mapToDTO(Comment comment) {
 
         return CommentDTO.builder()
-                .id(comment.getItem().getId())
+                .id(comment.getId())
                 .authorName(comment.getAuthorName())
                 .text(comment.getText())
                 .created(comment.getCreated().toString())

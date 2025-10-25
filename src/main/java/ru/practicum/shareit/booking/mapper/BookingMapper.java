@@ -10,10 +10,6 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-
-
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class BookingMapper {
 
@@ -22,12 +18,8 @@ public final class BookingMapper {
                 .item(item)
                 .booker(booker)
                 .status(requestBookingDto.getStatus())
-                .startDate(LocalDateTime.parse(requestBookingDto.getStart())
-                        .atZone(ZoneId.systemDefault())
-                        .toInstant())
-                .endDate(LocalDateTime.parse(requestBookingDto.getEnd())
-                        .atZone(ZoneId.systemDefault())
-                        .toInstant())
+                .startDate(requestBookingDto.getStart())
+                .endDate(requestBookingDto.getEnd())
                 .build();
     }
 
@@ -37,8 +29,8 @@ public final class BookingMapper {
                 .item(itemDto)
                 .booker(UserMapper.mapToDTO(booking.getBooker()))
                 .status(booking.getStatus())
-                .start(LocalDateTime.ofInstant(booking.getStartDate(), ZoneId.systemDefault()).toString())
-                .end(LocalDateTime.ofInstant(booking.getEndDate(), ZoneId.systemDefault()).toString())
+                .start(booking.getStartDate())
+                .end(booking.getEndDate())
                 .build();
     }
 }

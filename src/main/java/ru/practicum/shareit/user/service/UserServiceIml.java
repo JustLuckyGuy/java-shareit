@@ -47,7 +47,7 @@ public class UserServiceIml implements UserService {
         }
         User oldUser = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
-        oldUser = UserMapper.updateFields(oldUser, UserMapper.mapToUser(user));
+        UserMapper.updateFields(oldUser, UserMapper.mapToUser(user));
         return UserMapper.mapToDTO(userRepository.save(oldUser));
     }
 

@@ -1,5 +1,6 @@
 package ru.practicum.shareit.item.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import lombok.Builder;
 import lombok.Data;
@@ -10,6 +11,7 @@ public class CommentDTO {
     @Positive
     private long id;
     private String authorName;
+    @NotBlank
     private String text;
     private String created;
 }

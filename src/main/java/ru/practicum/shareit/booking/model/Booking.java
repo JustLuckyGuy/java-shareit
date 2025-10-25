@@ -5,7 +5,7 @@ import lombok.*;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -22,18 +22,25 @@ public class Booking {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_id")
+    @ToString.Exclude
     private Item item;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booker_id")
+    @ToString.Exclude
     private User booker;
 
     @Enumerated(EnumType.STRING)
     private StatusBook status;
 
     @Column(name = "start_date")
-    private Instant startDate;
+    private LocalDateTime startDate;
 
     @Column(name = "end_date")
-    private Instant endDate;
+    private LocalDateTime endDate;
+
+    @Transient
+    public boolean isFinished(LocalDateTime now) {
+        return getStatus() == StatusBook.APPROVED && getEndDate().isBefore(now);
+    }
 }

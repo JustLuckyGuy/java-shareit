@@ -6,6 +6,8 @@ import ru.practicum.shareit.booking.model.StatusBook;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.user.dto.UserDTO;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 public class ResponseBookingDto {
@@ -13,6 +15,6 @@ public class ResponseBookingDto {
     private ItemDto item;
     private UserDTO booker;
     private StatusBook status;
-    private String start;
-    private String end;
+    private LocalDateTime start;
+    private LocalDateTime end;
 }

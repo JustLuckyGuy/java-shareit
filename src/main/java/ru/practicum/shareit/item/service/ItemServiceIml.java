@@ -2,9 +2,9 @@ package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.model.Booking;
-import ru.practicum.shareit.booking.model.StatusBook;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.exception.BadRequestException;
 import ru.practicum.shareit.exception.ConditionsNotMatchException;
@@ -20,7 +20,14 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.chrono.ChronoLocalDateTime;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -33,7 +40,20 @@ public class ItemServiceIml implements ItemService {
 
     @Override
     public List<ItemDto> allItems() {
-        return itemRepository.findAll().stream().map(item -> prepareAndMakeItemDto(item, false)).toList();
+        List<Item> items = itemRepository.findAll();
+
+        if (items.isEmpty()) {
+            return List.of();
+        }
+
+        List<Comment> allComments = commentRepository.findByItemIn(items, Sort.by(Sort.Direction.DESC, "created"));
+        Map<Item, List<Comment>> commentsByItem = allComments.stream()
+                .collect(Collectors.groupingBy(Comment::getItem));
+
+        Map<Item, List<Booking>> bookingsMap = new HashMap<>();
+        return items.stream()
+                .map(item -> prepareAndMakeItemDto(item, bookingsMap, commentsByItem, false))
+                .toList();
     }
 
     @Override
@@ -58,7 +78,7 @@ public class ItemServiceIml implements ItemService {
             throw new ConditionsNotMatchException("Только владелец может изменять данные предмета");
         }
         Item olditem = itemRepository.findById(itemId).orElseThrow(() -> new NotFoundException("Предмет не найден"));
-        olditem = ItemMapper.updateFields(olditem, prepareAndMakeItemPOJO(userId, itemDto));
+        ItemMapper.updateFields(olditem, prepareAndMakeItemPOJO(userId, itemDto));
         return prepareAndMakeItemDto(olditem, false);
     }
 
@@ -90,7 +110,9 @@ public class ItemServiceIml implements ItemService {
 
     @Override
     public CommentDTO addComment(long userId, long itemId, CommentDTO commentDto) {
-        if (!bookingRepository.existsByBookerIdAndItemIdAndEndBefore(userId, itemId, StatusBook.APPROVED)) {
+        final List<Booking> bookings = bookingRepository.findByItemIdAndBookerId(itemId, userId);
+        final LocalDateTime now = LocalDateTime.now();
+        if (bookings.stream().noneMatch(b -> b.isFinished(now))) {
             throw new BadRequestException("Чтобы оставить отзыв на предмет," +
                     " нужно воспользоваться им");
         }
@@ -108,8 +130,8 @@ public class ItemServiceIml implements ItemService {
         return CommentMapper.mapToDTO(commentRepository.save(comment));
     }
 
-    @Override
-    public ItemDto prepareAndMakeItemDto(Item item, boolean initDate) {
+
+    private ItemDto prepareAndMakeItemDto(Item item, boolean initDate) {
         Booking latestBooking = null;
         Booking nextBooking = null;
 
@@ -125,11 +147,49 @@ public class ItemServiceIml implements ItemService {
         return ItemMapper.mapToDTO(item, comments, nextBooking, latestBooking);
     }
 
-    @Override
-    public Item prepareAndMakeItemPOJO(long userId, ItemDto itemDto) {
+
+    private Item prepareAndMakeItemPOJO(long userId, ItemDto itemDto) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id '" + userId + "' не найден"));
 
         return ItemMapper.mapToItem(user, itemDto);
+    }
+
+    private ItemDto prepareAndMakeItemDto(Item item, Map<Item, List<Booking>> bookingsByItem,
+                                          Map<Item, List<Comment>> commentsByItem, boolean initDate) {
+
+        List<Booking> itemBookings = bookingsByItem.getOrDefault(item, List.of());
+
+
+        List<Comment> itemComments = commentsByItem.getOrDefault(item, List.of());
+        List<CommentDTO> commentDTOs = itemComments.stream()
+                .map(CommentMapper::mapToDTO)
+                .toList();
+
+        Booking latestBooking = null;
+        Booking nextBooking = null;
+
+        if (initDate && !itemBookings.isEmpty()) {
+            latestBooking = findLastBooking(itemBookings);
+            nextBooking = findNextBooking(itemBookings);
+        }
+
+        return ItemMapper.mapToDTO(item, commentDTOs, nextBooking, latestBooking);
+    }
+
+    private Booking findNextBooking(List<Booking> bookings) {
+        Instant now = Instant.now();
+        return bookings.stream()
+                .filter(booking -> booking.getStartDate().isAfter(ChronoLocalDateTime.from(now)))
+                .min(Comparator.comparing(Booking::getStartDate))
+                .orElse(null);
+    }
+
+    private Booking findLastBooking(List<Booking> bookings) {
+        Instant now = Instant.now();
+        return bookings.stream()
+                .filter(booking -> booking.getEndDate().isBefore(ChronoLocalDateTime.from(now)))
+                .max(Comparator.comparing(Booking::getEndDate))
+                .orElse(null);
     }
 }
