@@ -17,6 +17,8 @@ import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.request.model.ItemRequest;
+import ru.practicum.shareit.request.repository.RequestRepository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
@@ -37,6 +39,7 @@ public class ItemServiceIml implements ItemService {
     private final ItemRepository itemRepository;
     private final CommentRepository commentRepository;
     private final BookingRepository bookingRepository;
+    private final RequestRepository requestRepository;
 
     @Override
     public List<ItemDto> allItems() {
@@ -72,6 +75,14 @@ public class ItemServiceIml implements ItemService {
     @Override
     public ItemDto createItem(Long userId, ItemDto itemDto) {
         Item item = itemRepository.save(prepareAndMakeItemPOJO(userId, itemDto));
+        if (itemDto.getRequestId() != null) {
+            ItemRequest request = requestRepository.findById(itemDto.getRequestId()).orElseThrow(() ->
+                    new NotFoundException("Запрос с таким id: " + itemDto.getRequestId() + " не найден"));
+
+            request.getItems().add(item.getId());
+            requestRepository.save(request);
+        }
+
         return prepareAndMakeItemDto(item, false);
     }
 
