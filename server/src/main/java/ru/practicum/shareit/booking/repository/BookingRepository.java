@@ -49,7 +49,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     boolean existsByItemId(long itemId);
 
-    List<Booking> findByItemIdAndBookerId(Long userId, Long itemId);
+   List<Booking> findByItemIdAndBookerId(Long userId, Long itemId);
 
     @Query("select b from Booking b where b.item in ?1 and b.status = 'APPROVED'")
     List<Booking> findApprovedForItems(Collection<Item> items, Sort sort);

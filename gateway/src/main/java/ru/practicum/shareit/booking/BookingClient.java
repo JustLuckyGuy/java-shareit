@@ -1,6 +1,5 @@
 package ru.practicum.shareit.booking;
 
-import ru.practicum.shareit.exception.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;

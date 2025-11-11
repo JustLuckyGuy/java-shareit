@@ -1,5 +1,6 @@
 package ru.practicum.shareit.user;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,7 @@ public class UserController {
     private final UserClient client;
 
     @PostMapping
-    public ResponseEntity<UserDTO> saveUser(@RequestBody @Validated UserDTO userDto) {
+    public ResponseEntity<UserDTO> saveUser(@RequestBody @Valid UserDTO userDto) {
         log.info("Post user {}", userDto);
         return client.saveUser(userDto);
     }

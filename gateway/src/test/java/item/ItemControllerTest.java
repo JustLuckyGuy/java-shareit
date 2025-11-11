@@ -19,6 +19,7 @@ import ru.practicum.shareit.item.dto.ItemDto;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -62,12 +63,12 @@ class ItemControllerTest {
                 .thenReturn(ResponseEntity.ok(dto));
 
         mvc.perform(post("/items")
-                        .header("X-Sharer-User-Id", 313)
-                        .accept(MediaType.APPLICATION_JSON)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(dto))
-                        .characterEncoding(StandardCharsets.UTF_8)
-                ).andExpect(jsonPath("name", is(dto.getName())));
+                .header("X-Sharer-User-Id", 313)
+                .accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(dto))
+                .characterEncoding(StandardCharsets.UTF_8)
+        ).andExpect(jsonPath("name", is(dto.getName())));
 
         Mockito.verify(client, Mockito.times(1))
                 .postItem(313, dto);

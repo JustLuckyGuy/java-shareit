@@ -31,7 +31,7 @@ public class BookingController {
 
     @GetMapping("/owner")
     public ResponseEntity<List<BookingRequestDTO>> getOwnerBookings(@RequestHeader("X-Sharer-User-Id") long ownerId,
-                                                                     @RequestParam(name = "state", defaultValue = "all") String stateParam) {
+                                                                    @RequestParam(name = "state", defaultValue = "all") String stateParam) {
         StatusBook state = StatusBook.from(stateParam)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown state: " + stateParam));
         log.info("Get owner booking with state {}, ownerId={}", stateParam, ownerId);
@@ -40,22 +40,22 @@ public class BookingController {
 
     @PostMapping
     public ResponseEntity<BookingRequestDTO> bookItem(@RequestHeader("X-Sharer-User-Id") long userId,
-                                                       @RequestBody @Valid BookingRequestDTO requestDto) {
+                                                      @RequestBody @Valid BookingRequestDTO requestDto) {
         log.info("Creating booking {}, userId={}", requestDto, userId);
         return bookingClient.bookItem(userId, requestDto);
     }
 
     @GetMapping("/{bookingId}")
     public ResponseEntity<BookingRequestDTO> getBooking(@RequestHeader("X-Sharer-User-Id") long userId,
-                                                         @PathVariable Long bookingId) {
+                                                        @PathVariable Long bookingId) {
         log.info("Get booking {}, userId={}", bookingId, userId);
         return bookingClient.getBooking(userId, bookingId);
     }
 
     @PatchMapping("/{bookingId}")
     public ResponseEntity<BookingRequestDTO> changeBookStatus(@RequestHeader("X-Sharer-User-Id") long ownerId,
-                                                               @PathVariable Long bookingId,
-                                                               @RequestParam boolean approved) {
+                                                              @PathVariable Long bookingId,
+                                                              @RequestParam boolean approved) {
         log.info("Change booking status to {}, userId={}, bookingId={}", approved, ownerId, bookingId);
         return bookingClient.changeBookingStatus(ownerId, bookingId, approved);
     }

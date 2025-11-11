@@ -162,7 +162,7 @@ public class ItemServiceIml implements ItemService {
     }
 
 
-    public Item prepareAndMakeItemPOJO(long userId, ItemDto itemDto) {
+    private Item prepareAndMakeItemPOJO(long userId, ItemDto itemDto) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id '" + userId + "' не найден"));
 

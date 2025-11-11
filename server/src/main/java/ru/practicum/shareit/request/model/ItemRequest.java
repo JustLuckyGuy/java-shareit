@@ -30,7 +30,7 @@ public class ItemRequest {
     private User user;
 
     @ElementCollection
-    @CollectionTable(name="requests_items", joinColumns = @JoinColumn(name = "request_id"))
+    @CollectionTable(name = "requests_items", joinColumns = @JoinColumn(name = "request_id"))
     @Column(name = "item_id")
     private Set<Long> items;
 

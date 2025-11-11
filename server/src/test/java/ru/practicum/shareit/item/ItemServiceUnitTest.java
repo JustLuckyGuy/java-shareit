@@ -76,7 +76,7 @@ class ItemServiceUnitTest {
                 .build();
 
 
-        service = new ItemServiceIml(userRepository,itemRepository, commentRepository, bookingRepository,
+        service = new ItemServiceIml(userRepository, itemRepository, commentRepository, bookingRepository,
                 requestRepository);
 
     }
