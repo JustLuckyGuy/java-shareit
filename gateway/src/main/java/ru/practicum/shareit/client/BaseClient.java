@@ -1,7 +1,6 @@
 package ru.practicum.shareit.client;
 
 import jakarta.annotation.Nullable;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
