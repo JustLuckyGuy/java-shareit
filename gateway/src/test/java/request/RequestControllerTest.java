@@ -20,20 +20,22 @@ import java.nio.charset.StandardCharsets;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 @SpringBootTest(classes = ShareItGateway.class)
 @AutoConfigureMockMvc
 class RequestControllerTest {
     @Autowired
-    MockMvc mvc;
+    private MockMvc mvc;
     @Autowired
-    ObjectMapper mapper;
+    private ObjectMapper mapper;
     @MockBean
-    RequestClient client;
-    ItemRequestDto dto;
-    ItemRequestDto dto2;
+    private RequestClient client;
+    private ItemRequestDto dto;
+    private ItemRequestDto dto2;
 
     @BeforeEach
     void before() {
@@ -109,6 +111,166 @@ class RequestControllerTest {
 
         Mockito.verify(client, Mockito.times(1))
                 .getRequestById(379);
+    }
+
+    @Test
+    void testPostWithoutUserIdHeader() throws Exception {
+        mvc.perform(post("/requests")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testGetUserRequestsWithoutUserIdHeader() throws Exception {
+        mvc.perform(get("/requests"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testGetAllRequestsWithoutUserIdHeader() throws Exception {
+        mvc.perform(get("/requests/all"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testPostWithEmptyDescription() throws Exception {
+        ItemRequestDto invalidDto = ItemRequestDto.builder()
+                .description("")
+                .build();
+
+        mvc.perform(post("/requests")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(invalidDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testPostWithBlankDescription() throws Exception {
+        ItemRequestDto invalidDto = ItemRequestDto.builder()
+                .description("   ")
+                .build();
+
+        mvc.perform(post("/requests")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(invalidDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testPostWithNullDescription() throws Exception {
+        String jsonWithoutDescription = "{\"someField\":\"value\"}";
+
+        mvc.perform(post("/requests")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonWithoutDescription))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testGetRequestByIdWithZeroId() throws Exception {
+        Mockito.when(client.getRequestById(0L))
+                .thenReturn(ResponseEntity.ok(dto));
+
+        mvc.perform(get("/requests/0"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void testGetUserRequestsWithEmptyList() throws Exception {
+        Mockito.when(client.getUserRequests(Mockito.anyLong()))
+                .thenReturn(ResponseEntity.ok(Collections.emptyList()));
+
+        mvc.perform(get("/requests")
+                        .header("X-Sharer-User-Id", 999))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()", is(0)));
+    }
+
+    @Test
+    void testGetAllRequestsWithEmptyList() throws Exception {
+        Mockito.when(client.getAllRequests(Mockito.anyLong()))
+                .thenReturn(ResponseEntity.ok(Collections.emptyList()));
+
+        mvc.perform(get("/requests/all")
+                        .header("X-Sharer-User-Id", 999))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()", is(0)));
+    }
+
+    @Test
+    void testPostWithVeryLongDescription() throws Exception {
+        String longDescription = "A".repeat(1000);
+        ItemRequestDto longDto = ItemRequestDto.builder()
+                .description(longDescription)
+                .build();
+
+        Mockito.when(client.postRequest(Mockito.anyLong(), Mockito.any(ItemRequestDto.class)))
+                .thenReturn(ResponseEntity.ok(longDto));
+
+        mvc.perform(post("/requests")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(longDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("description", is(longDescription)));
+
+        Mockito.verify(client, Mockito.times(1))
+                .postRequest(1, longDto);
+    }
+
+    @Test
+    void testPostWithSpecialCharacters() throws Exception {
+        ItemRequestDto specialDto = ItemRequestDto.builder()
+                .description("Special chars: !@#$%^&*()_+{}[]|:;<>,.?/~`")
+                .build();
+
+        Mockito.when(client.postRequest(Mockito.anyLong(), Mockito.any(ItemRequestDto.class)))
+                .thenReturn(ResponseEntity.ok(specialDto));
+
+        mvc.perform(post("/requests")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(specialDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("description", is(specialDto.getDescription())));
+
+        Mockito.verify(client, Mockito.times(1))
+                .postRequest(1, specialDto);
+    }
+
+    @Test
+    void testPostWithFullDto() throws Exception {
+        ItemRequestDto fullDto = ItemRequestDto.builder()
+                .id(123L)
+                .description("Full DTO test")
+                .created(java.time.LocalDateTime.now())
+                .items(Collections.emptyList())
+                .build();
+
+        Mockito.when(client.postRequest(Mockito.anyLong(), Mockito.any(ItemRequestDto.class)))
+                .thenReturn(ResponseEntity.ok(fullDto));
+
+        mvc.perform(post("/requests")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(fullDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("description", is(fullDto.getDescription())));
+
+        Mockito.verify(client, Mockito.times(1))
+                .postRequest(1, fullDto);
+    }
+
+    @Test
+    void testPostWithNullBody() throws Exception {
+        mvc.perform(post("/requests")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
     }
 
 }

@@ -125,7 +125,9 @@ public class ItemServiceIml implements ItemService {
     @Override
     public CommentDTO addComment(long userId, long itemId, CommentDTO commentDto) {
         final List<Booking> bookings = bookingRepository.findByItemIdAndBookerId(itemId, userId);
+        log.info("Время бронирования ----------------------- {}", bookings);
         final LocalDateTime now = LocalDateTime.now();
+        log.info("Время ------------------------------ {}", LocalDateTime.now());
         if (bookings.stream().noneMatch(b -> b.isFinished(now))) {
             throw new BadRequestException("Чтобы оставить отзыв на предмет," +
                     " нужно воспользоваться им");

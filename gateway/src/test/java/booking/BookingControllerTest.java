@@ -19,21 +19,25 @@ import ru.practicum.shareit.booking.dto.StatusBook;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 
 @SpringBootTest(classes = ShareItGateway.class)
 @AutoConfigureMockMvc
 class BookingControllerTest {
     @Autowired
-    MockMvc mvc;
+    private MockMvc mvc;
     @Autowired
-    ObjectMapper mapper;
+    private ObjectMapper mapper;
     @MockBean
-    BookingClient client;
-    BookingRequestDTO dto;
-    BookingRequestDTO dto2;
+    private BookingClient client;
+    private BookingRequestDTO dto;
+    private BookingRequestDTO dto2;
+    private BookingRequestDTO validBookingDto;
 
     @BeforeEach
     void before() {
@@ -45,6 +49,12 @@ class BookingControllerTest {
         dto2 = BookingRequestDTO.builder()
                 .status(StatusBook.WAITING)
                 .itemId(31213)
+                .build();
+
+        validBookingDto = BookingRequestDTO.builder()
+                .itemId(1L)
+                .start(LocalDateTime.now().plusDays(1))
+                .end(LocalDateTime.now().plusDays(2))
                 .build();
     }
 
@@ -128,5 +138,137 @@ class BookingControllerTest {
 
         Mockito.verify(client, Mockito.times(1))
                 .changeBookingStatus(98, (long) 43, true);
+    }
+
+    @Test
+    void testGetUserBookingsWithEmptyList() throws Exception {
+        Mockito.when(client.getUserBookings(Mockito.anyLong(), Mockito.any(StatusBook.class)))
+                .thenReturn(ResponseEntity.ok(Collections.emptyList()));
+
+        mvc.perform(get("/bookings?state=all")
+                        .header("X-Sharer-User-Id", 123))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()", is(0)));
+    }
+
+    @Test
+    void testGetUserBookingsWithDefaultState() throws Exception {
+        Mockito.when(client.getUserBookings(Mockito.anyLong(), Mockito.eq(StatusBook.ALL)))
+                .thenReturn(ResponseEntity.ok(Collections.singletonList(dto)));
+
+        mvc.perform(get("/bookings")
+                        .header("X-Sharer-User-Id", 123))
+                .andExpect(status().isOk());
+
+        Mockito.verify(client, Mockito.times(1))
+                .getUserBookings(123, StatusBook.ALL);
+    }
+
+    @Test
+    void testChangeBookingStatusWithFalse() throws Exception {
+        Mockito.when(client.changeBookingStatus(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyBoolean()))
+                .thenReturn(ResponseEntity.ok(dto));
+
+        mvc.perform(patch("/bookings/43?approved=false")
+                        .header("X-Sharer-User-Id", 98))
+                .andExpect(status().isOk());
+
+        Mockito.verify(client, Mockito.times(1))
+                .changeBookingStatus(98, 43L, false);
+    }
+
+    @Test
+    void testGetBookingWithZeroId() throws Exception {
+        Mockito.when(client.getBooking(Mockito.anyLong(), Mockito.anyLong()))
+                .thenReturn(ResponseEntity.ok(dto));
+
+        mvc.perform(get("/bookings/0")
+                        .header("X-Sharer-User-Id", 123))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void testPostWithEndInPast() throws Exception {
+        BookingRequestDTO invalidDto = BookingRequestDTO.builder()
+                .itemId(1L)
+                .start(LocalDateTime.now().plusDays(1))
+                .end(LocalDateTime.now().minusDays(1))
+                .build();
+
+        mvc.perform(post("/bookings")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(invalidDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testPostWithStartInPast() throws Exception {
+        BookingRequestDTO invalidDto = BookingRequestDTO.builder()
+                .itemId(1L)
+                .start(LocalDateTime.now().minusDays(1))
+                .end(LocalDateTime.now().plusDays(1))
+                .build();
+
+        mvc.perform(post("/bookings")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(invalidDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testPostWithNegativeItemId() throws Exception {
+        BookingRequestDTO invalidDto = BookingRequestDTO.builder()
+                .itemId(-1L)
+                .start(LocalDateTime.now().plusDays(1))
+                .end(LocalDateTime.now().plusDays(2))
+                .build();
+
+        mvc.perform(post("/bookings")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(invalidDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testPostWithInvalidBookingDto() throws Exception {
+        BookingRequestDTO invalidDto = BookingRequestDTO.builder()
+                .start(LocalDateTime.now().plusDays(1))
+                .end(LocalDateTime.now().plusDays(2))
+                .build();
+
+        mvc.perform(post("/bookings")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(invalidDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testPostWithoutUserIdHeader() throws Exception {
+        mvc.perform(post("/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(validBookingDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testGetUserBookingsWithInvalidState() throws Exception {
+        mvc.perform(get("/bookings?state=invalid")
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 123))
+                .andExpect(status().is4xxClientError());
+    }
+
+    @Test
+    void testGetOwnerBookingsWithInvalidState() throws Exception {
+        mvc.perform(get("/bookings/owner?state=invalid")
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 123))
+                .andExpect(status().is4xxClientError());
     }
 }

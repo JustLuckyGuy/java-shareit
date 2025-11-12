@@ -19,6 +19,7 @@ import ru.practicum.shareit.item.dto.ItemDto;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -28,14 +29,14 @@ import java.util.Collections;
 @AutoConfigureMockMvc
 class ItemControllerTest {
     @Autowired
-    MockMvc mvc;
+    private MockMvc mvc;
     @Autowired
-    ObjectMapper mapper;
+    private ObjectMapper mapper;
     @MockBean
-    ItemClient client;
-    ItemDto dto;
-    ItemDto dto2;
-    CommentDTO comment;
+    private ItemClient client;
+    private ItemDto dto;
+    private ItemDto dto2;
+    private CommentDTO comment;
 
     @BeforeEach
     void before() {
@@ -175,4 +176,238 @@ class ItemControllerTest {
         Mockito.verify(client, Mockito.times(1))
                 .addComment(333, 32, comment);
     }
+
+    @Test
+    void testPostWithoutUserIdHeader() throws Exception {
+        mvc.perform(post("/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testUpdateWithoutUserIdHeader() throws Exception {
+        mvc.perform(patch("/items/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testGetUserItemsWithoutUserIdHeader() throws Exception {
+        mvc.perform(get("/items"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testDeleteWithoutUserIdHeader() throws Exception {
+        mvc.perform(delete("/items/1"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testAddCommentWithoutUserIdHeader() throws Exception {
+        mvc.perform(post("/items/1/comment")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(comment)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testPostWithInvalidItemDto() throws Exception {
+        ItemDto invalidDto = ItemDto.builder()
+                .description("description")
+                .available(true)
+                .build();
+
+        mvc.perform(post("/items")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(invalidDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testPostWithEmptyName() throws Exception {
+        ItemDto invalidDto = ItemDto.builder()
+                .name("")
+                .description("description")
+                .available(true)
+                .build();
+
+        mvc.perform(post("/items")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(invalidDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testPostWithNullAvailable() throws Exception {
+        ItemDto invalidDto = ItemDto.builder()
+                .name("name")
+                .description("description")
+                .available(null)
+                .build();
+
+        mvc.perform(post("/items")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(invalidDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testPostWithLongName() throws Exception {
+        String longName = "a".repeat(101);
+        ItemDto invalidDto = ItemDto.builder()
+                .name(longName)
+                .description("description")
+                .available(true)
+                .build();
+
+        mvc.perform(post("/items")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(invalidDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testAddCommentWithEmptyText() throws Exception {
+        CommentDTO invalidComment = CommentDTO.builder()
+                .authorName("Author")
+                .text("")
+                .build();
+
+        mvc.perform(post("/items/1/comment")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(invalidComment)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testAddCommentWithBlankText() throws Exception {
+        CommentDTO invalidComment = CommentDTO.builder()
+                .authorName("Author")
+                .text("   ")
+                .build();
+
+        mvc.perform(post("/items/1/comment")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(invalidComment)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testGetItemWithZeroId() throws Exception {
+        Mockito.when(client.getItem(0L))
+                .thenReturn(ResponseEntity.ok(dto));
+
+        mvc.perform(get("/items/0"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void testUpdateWithZeroIds() throws Exception {
+        Mockito.when(client.updateItem(Mockito.anyLong(), Mockito.anyLong(), Mockito.any(ItemDto.class)))
+                .thenReturn(ResponseEntity.ok(dto));
+
+        mvc.perform(patch("/items/0")
+                        .header("X-Sharer-User-Id", 0)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(dto)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void testItemSearchWithEmptyText() throws Exception {
+        Mockito.when(client.itemSearch(""))
+                .thenReturn(ResponseEntity.ok(Collections.emptyList()));
+
+        mvc.perform(get("/items/search?text=")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()", is(0)));
+    }
+
+    @Test
+    void testItemSearchWithSpaceText() throws Exception {
+        Mockito.when(client.itemSearch("   "))
+                .thenReturn(ResponseEntity.ok(Collections.emptyList()));
+
+        mvc.perform(get("/items/search?text=   ")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()", is(0)));
+    }
+
+    @Test
+    void testGetUserItemsWithEmptyList() throws Exception {
+        Mockito.when(client.getUserItems(Mockito.anyLong()))
+                .thenReturn(ResponseEntity.ok(Collections.emptyList()));
+
+        mvc.perform(get("/items")
+                        .header("X-Sharer-User-Id", 999))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()", is(0)));
+    }
+
+    @Test
+    void testItemSearchWithSpecialCharacters() throws Exception {
+        String specialText = "test&search?param=value";
+        Mockito.when(client.itemSearch(specialText))
+                .thenReturn(ResponseEntity.ok(Collections.singletonList(dto)));
+
+        mvc.perform(get("/items/search?text=" + specialText)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void testUpdateOnlyName() throws Exception {
+        ItemDto updateDto = dto;
+        updateDto.setName("Updated Name");
+
+        ItemDto expectedDto = ItemDto.builder()
+                .name("Updated Name")
+                .description(dto.getDescription())
+                .available(dto.getAvailable())
+                .build();
+
+        Mockito.when(client.updateItem(Mockito.anyLong(), Mockito.anyLong(), Mockito.any(ItemDto.class)))
+                .thenReturn(ResponseEntity.ok(expectedDto));
+
+        mvc.perform(patch("/items/1")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(updateDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("name", is("Updated Name")));
+    }
+
+    @Test
+    void testUpdateOnlyDescription() throws Exception {
+        ItemDto updateDto = dto;
+        updateDto.setDescription("Updated Description");
+
+        ItemDto expectedDto = ItemDto.builder()
+                .name(dto.getName())
+                .description("Updated Description")
+                .available(dto.getAvailable())
+                .build();
+
+        Mockito.when(client.updateItem(Mockito.anyLong(), Mockito.anyLong(), Mockito.any(ItemDto.class)))
+                .thenReturn(ResponseEntity.ok(expectedDto));
+
+        mvc.perform(patch("/items/1")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(updateDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("description", is("Updated Description")));
+    }
+
 }
