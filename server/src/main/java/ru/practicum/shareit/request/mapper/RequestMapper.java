@@ -25,8 +25,8 @@ public final class RequestMapper {
         if (request.getItems() != null && !request.getItems().isEmpty()) {
             items = request.getItems().stream()
                     .map(id -> {
-                        Item item = repository.findById(id).
-                                orElseThrow(() -> new NotFoundException("Предмет с id: " + id + " не найден"));
+                        Item item = repository.findById(id)
+                                .orElseThrow(() -> new NotFoundException("Предмет с id: " + id + " не найден"));
                         return ItemResponse.builder()
                                 .itemId(item.getId())
                                 .userId(item.getOwner().getId())
