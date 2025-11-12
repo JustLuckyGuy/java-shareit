@@ -1,134 +1,332 @@
 package item;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.web.util.UriTemplateHandler;
 import ru.practicum.shareit.ShareItGateway;
 import ru.practicum.shareit.item.ItemClient;
 import ru.practicum.shareit.item.dto.CommentDTO;
 import ru.practicum.shareit.item.dto.ItemDto;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.mock;
+import java.util.Objects;
+import java.util.function.Supplier;
+
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = ShareItGateway.class)
 @AutoConfigureMockMvc
+@ExtendWith(MockitoExtension.class)
 class ItemClientTest {
 
-    @Test
-    void postItemShouldReturnResponse() {
-        ItemClient itemClient = mock(ItemClient.class);
-        ItemDto itemDto = ItemDto.builder().build();
-        when(itemClient.postItem(Mockito.anyLong(), Mockito.any(ItemDto.class)))
-                .thenReturn(ResponseEntity.ok().build());
+    @Mock
+    private RestTemplate restTemplate;
 
-        ResponseEntity<?> response = itemClient.postItem(1L, itemDto);
+    @Mock
+    private RestTemplateBuilder builder;
 
-        assertNotNull(response);
+    private ItemClient itemClient;
+    private static final String BASE_URL = "http://test-server";
+    private static final String API_PREFIX = "/items";
+    private static final String X_SHARER_USER_ID = "X-Sharer-User-Id";
+
+    @BeforeEach
+    void setUp() {
+        DefaultUriBuilderFactory uriBuilderFactory = new DefaultUriBuilderFactory(BASE_URL + API_PREFIX);
+        when(builder.uriTemplateHandler(Mockito.any(UriTemplateHandler.class)))
+                .thenReturn(builder);
+        when(builder.requestFactory(Mockito.any(Supplier.class)))
+                .thenReturn(builder);
+        when(builder.build())
+                .thenReturn(restTemplate);
+        builder.uriTemplateHandler(uriBuilderFactory);
+
+        itemClient = new ItemClient(BASE_URL, builder);
+
+        ResponseEntity<Object> mockResponse = ResponseEntity.ok().body("mock-response");
+        when(restTemplate.exchange(
+                Mockito.anyString(),
+                Mockito.any(HttpMethod.class),
+                Mockito.any(),
+                Mockito.eq(Object.class)
+        )).thenReturn(mockResponse);
     }
 
     @Test
-    void updateItemShouldReturnResponse() {
-        ItemClient itemClient = mock(ItemClient.class);
-        ItemDto itemDto = ItemDto.builder().build();
-        when(itemClient.updateItem(Mockito.anyLong(), Mockito.anyLong(), Mockito.any(ItemDto.class)))
-                .thenReturn(ResponseEntity.ok().build());
+    void postItemShouldCallPostWithItemDataAndUserIdHeader() {
+        long userId = 1L;
+        ItemDto itemDto = ItemDto.builder()
+                .name("Test Item")
+                .description("Test Description")
+                .available(true)
+                .build();
 
-        ResponseEntity<?> response = itemClient.updateItem(1L, 1L, itemDto);
+        itemClient.postItem(userId, itemDto);
 
-        assertNotNull(response);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq(""),
+                Mockito.eq(HttpMethod.POST),
+                Mockito.argThat((HttpEntity<?> entity) ->
+                        entity.getBody() == itemDto &&
+                                entity.getHeaders().containsKey(X_SHARER_USER_ID) &&
+                                Objects.equals(entity.getHeaders().getFirst(X_SHARER_USER_ID), "1")),
+                Mockito.eq(Object.class)
+        );
     }
 
     @Test
-    void getItemShouldReturnResponse() {
-        ItemClient itemClient = mock(ItemClient.class);
-        when(itemClient.getItem(Mockito.anyLong()))
-                .thenReturn(ResponseEntity.ok().build());
+    void updateItemShouldCallPatchWithItemIdAndUpdateData() {
+        long userId = 1L;
+        long itemId = 123L;
+        ItemDto updateDto = ItemDto.builder()
+                .name("Updated Name")
+                .description("Updated Description")
+                .available(false)
+                .build();
 
-        ResponseEntity<?> response = itemClient.getItem(1L);
+        itemClient.updateItem(userId, itemId, updateDto);
 
-        assertNotNull(response);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq("/123"),
+                Mockito.eq(HttpMethod.PATCH),
+                Mockito.argThat((HttpEntity<?> entity) ->
+                        entity.getBody() == updateDto &&
+                                entity.getHeaders().containsKey(X_SHARER_USER_ID) &&
+                                Objects.equals(entity.getHeaders().getFirst(X_SHARER_USER_ID), "1")),
+                Mockito.eq(Object.class)
+        );
     }
 
     @Test
-    void getUserItemsShouldReturnResponse() {
-        ItemClient itemClient = mock(ItemClient.class);
-        when(itemClient.getUserItems(Mockito.anyLong()))
-                .thenReturn(ResponseEntity.ok().build());
+    void updateItemWithPartialDataShouldCallPatchWithPartialUpdate() {
+        long userId = 1L;
+        long itemId = 123L;
+        ItemDto nameOnlyUpdate = ItemDto.builder()
+                .name("Updated Name Only")
+                .build();
 
-        ResponseEntity<?> response = itemClient.getUserItems(1L);
+        itemClient.updateItem(userId, itemId, nameOnlyUpdate);
 
-        assertNotNull(response);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq("/123"),
+                Mockito.eq(HttpMethod.PATCH),
+                Mockito.argThat((HttpEntity<?> entity) ->
+                        entity.getBody() == nameOnlyUpdate &&
+                                entity.getHeaders().containsKey(X_SHARER_USER_ID) &&
+                                Objects.equals(entity.getHeaders().getFirst(X_SHARER_USER_ID), "1")),
+                Mockito.eq(Object.class)
+        );
     }
 
     @Test
-    void itemSearchShouldReturnResponse() {
-        ItemClient itemClient = mock(ItemClient.class);
-        when(itemClient.itemSearch(Mockito.anyString()))
-                .thenReturn(ResponseEntity.ok().build());
+    void getItemShouldCallGetWithItemIdInPath() {
+        long itemId = 123L;
 
-        ResponseEntity<?> response = itemClient.itemSearch("test");
+        itemClient.getItem(itemId);
 
-        assertNotNull(response);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq("/123"),
+                Mockito.eq(HttpMethod.GET),
+                Mockito.argThat((HttpEntity<?> entity) ->
+                        !entity.getHeaders().containsKey(X_SHARER_USER_ID)),
+                Mockito.eq(Object.class)
+        );
     }
 
     @Test
-    void deleteItemShouldReturnResponse() {
-        ItemClient itemClient = mock(ItemClient.class);
-        when(itemClient.deleteItem(Mockito.anyLong(), Mockito.anyLong()))
-                .thenReturn(ResponseEntity.ok().build());
+    void getItemWithZeroIdShouldCallGetWithZeroIdPath() {
+        long itemId = 0L;
 
-        ResponseEntity<?> response = itemClient.deleteItem(1L, 1L);
+        itemClient.getItem(itemId);
 
-        assertNotNull(response);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq("/0"),
+                Mockito.eq(HttpMethod.GET),
+                Mockito.argThat((HttpEntity<?> entity) ->
+                        !entity.getHeaders().containsKey(X_SHARER_USER_ID)),
+                Mockito.eq(Object.class)
+        );
     }
 
     @Test
-    void addCommentShouldReturnResponse() {
-        ItemClient itemClient = mock(ItemClient.class);
-        CommentDTO commentDTO = CommentDTO.builder().build();
-        when(itemClient.addComment(Mockito.anyLong(), Mockito.anyLong(), Mockito.any(CommentDTO.class)))
-                .thenReturn(ResponseEntity.ok().build());
+    void getUserItemsShouldCallGetWithEmptyPathAndUserIdHeader() {
+        long userId = 1L;
 
-        ResponseEntity<?> response = itemClient.addComment(1L, 1L, commentDTO);
+        itemClient.getUserItems(userId);
 
-        assertNotNull(response);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq(""),
+                Mockito.eq(HttpMethod.GET),
+                Mockito.argThat((HttpEntity<?> entity) ->
+                        entity.getHeaders().containsKey(X_SHARER_USER_ID) &&
+                                Objects.equals(entity.getHeaders().getFirst(X_SHARER_USER_ID), "1")),
+                Mockito.eq(Object.class)
+        );
     }
 
     @Test
-    void itemSearchWithEmptyTextShouldReturnResponse() {
-        ItemClient itemClient = mock(ItemClient.class);
-        when(itemClient.itemSearch(Mockito.anyString()))
-                .thenReturn(ResponseEntity.ok().build());
+    void getUserItemsWithDifferentUsersShouldCallGetWithDifferentUserIds() {
 
-        ResponseEntity<?> response = itemClient.itemSearch("");
+        itemClient.getUserItems(1L);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq(""),
+                Mockito.eq(HttpMethod.GET),
+                Mockito.argThat((HttpEntity<?> entity) ->
+                        Objects.equals(entity.getHeaders().getFirst(X_SHARER_USER_ID), "1")),
+                Mockito.eq(Object.class)
+        );
 
-        assertNotNull(response);
+
+        itemClient.getUserItems(2L);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq(""),
+                Mockito.eq(HttpMethod.GET),
+                Mockito.argThat((HttpEntity<?> entity) ->
+                        Objects.equals(entity.getHeaders().getFirst(X_SHARER_USER_ID), "2")),
+                Mockito.eq(Object.class)
+        );
     }
 
     @Test
-    void itemSearchWithSpecialCharactersShouldReturnResponse() {
-        ItemClient itemClient = mock(ItemClient.class);
-        when(itemClient.itemSearch(Mockito.anyString()))
-                .thenReturn(ResponseEntity.ok().build());
+    void deleteItemShouldCallDeleteWithItemIdAndUserIdHeader() {
+        long userId = 1L;
+        long itemId = 123L;
 
-        ResponseEntity<?> response = itemClient.itemSearch("test&search");
+        itemClient.deleteItem(userId, itemId);
 
-        assertNotNull(response);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq("/123"),
+                Mockito.eq(HttpMethod.DELETE),
+                Mockito.argThat((HttpEntity<?> entity) ->
+                        entity.getHeaders().containsKey(X_SHARER_USER_ID) &&
+                                Objects.equals(entity.getHeaders().getFirst(X_SHARER_USER_ID), "1")),
+                Mockito.eq(Object.class)
+        );
     }
 
     @Test
-    void updateItemWithPartialDataShouldReturnResponse() {
-        ItemClient itemClient = mock(ItemClient.class);
-        ItemDto nameOnlyUpdate = ItemDto.builder().name("Updated Name").build();
-        when(itemClient.updateItem(Mockito.anyLong(), Mockito.anyLong(), Mockito.any(ItemDto.class)))
-                .thenReturn(ResponseEntity.ok().build());
+    void addCommentShouldCallPostWithCommentPathAndData() {
+        long userId = 1L;
+        long itemId = 123L;
+        CommentDTO commentDTO = CommentDTO.builder()
+                .text("Great item!")
+                .build();
 
-        ResponseEntity<?> response = itemClient.updateItem(1L, 1L, nameOnlyUpdate);
+        itemClient.addComment(userId, itemId, commentDTO);
 
-        assertNotNull(response);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq("/123/comment"),
+                Mockito.eq(HttpMethod.POST),
+                Mockito.argThat((HttpEntity<?> entity) ->
+                        entity.getBody() == commentDTO &&
+                                entity.getHeaders().containsKey(X_SHARER_USER_ID) &&
+                                Objects.equals(entity.getHeaders().getFirst(X_SHARER_USER_ID), "1")),
+                Mockito.eq(Object.class)
+        );
+    }
+
+    @Test
+    void addCommentWithFullCommentDataShouldCallPostWithCompleteComment() {
+        long userId = 1L;
+        long itemId = 123L;
+        CommentDTO fullComment = CommentDTO.builder()
+                .id(456L)
+                .authorName("John Doe")
+                .text("Excellent item, very useful!")
+                .created("2023-10-01T10:00:00")
+                .build();
+
+        itemClient.addComment(userId, itemId, fullComment);
+
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq("/123/comment"),
+                Mockito.eq(HttpMethod.POST),
+                Mockito.argThat((HttpEntity<?> entity) ->
+                        entity.getBody() == fullComment &&
+                                entity.getHeaders().containsKey(X_SHARER_USER_ID) &&
+                                Objects.equals(entity.getHeaders().getFirst(X_SHARER_USER_ID), "1")),
+                Mockito.eq(Object.class)
+        );
+    }
+
+    @Test
+    void postItemWithFullItemDataShouldCallPostWithCompleteItem() {
+        long userId = 1L;
+        ItemDto fullItem = ItemDto.builder()
+                .id(123L)
+                .name("Complete Test Item")
+                .description("Very detailed description of the test item")
+                .available(true)
+                .request(456L)
+                .requestId(789L)
+                .build();
+
+        itemClient.postItem(userId, fullItem);
+
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq(""),
+                Mockito.eq(HttpMethod.POST),
+                Mockito.argThat((HttpEntity<?> entity) ->
+                        entity.getBody() == fullItem &&
+                                entity.getHeaders().containsKey(X_SHARER_USER_ID) &&
+                                Objects.equals(entity.getHeaders().getFirst(X_SHARER_USER_ID), "1")),
+                Mockito.eq(Object.class)
+        );
+    }
+
+    @Test
+    void updateItemWithDifferentItemIdsShouldCallPatchWithCorrectPaths() {
+        long userId = 1L;
+
+
+        ItemDto update1 = ItemDto.builder().name("Update 1").build();
+        itemClient.updateItem(userId, 1L, update1);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq("/1"),
+                Mockito.eq(HttpMethod.PATCH),
+                Mockito.argThat((HttpEntity<?> entity) -> Objects.equals(entity.getHeaders().getFirst(X_SHARER_USER_ID), "1")),
+                Mockito.eq(Object.class)
+        );
+
+
+        ItemDto update2 = ItemDto.builder().name("Update 2").build();
+        itemClient.updateItem(userId, 999L, update2);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq("/999"),
+                Mockito.eq(HttpMethod.PATCH),
+                Mockito.argThat((HttpEntity<?> entity) -> Objects.equals(entity.getHeaders().getFirst(X_SHARER_USER_ID), "1")),
+                Mockito.eq(Object.class)
+        );
+    }
+
+    @Test
+    void deleteItemWithDifferentUsersAndItemsShouldCallDeleteWithCorrectParameters() {
+
+        itemClient.deleteItem(1L, 1L);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq("/1"),
+                Mockito.eq(HttpMethod.DELETE),
+                Mockito.argThat((HttpEntity<?> entity) -> Objects.equals(entity.getHeaders().getFirst(X_SHARER_USER_ID), "1")),
+                Mockito.eq(Object.class)
+        );
+
+        itemClient.deleteItem(2L, 2L);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq("/2"),
+                Mockito.eq(HttpMethod.DELETE),
+                Mockito.argThat((HttpEntity<?> entity) -> Objects.equals(entity.getHeaders().getFirst(X_SHARER_USER_ID), "2")),
+                Mockito.eq(Object.class)
+        );
     }
 }

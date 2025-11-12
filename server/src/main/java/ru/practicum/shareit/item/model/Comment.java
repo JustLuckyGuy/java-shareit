@@ -3,7 +3,7 @@ package ru.practicum.shareit.item.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -31,5 +31,5 @@ public class Comment {
 
     @Column(name = "created")
     @Builder.Default
-    private Instant created = Instant.now();
+    private LocalDateTime created = LocalDateTime.now();
 }

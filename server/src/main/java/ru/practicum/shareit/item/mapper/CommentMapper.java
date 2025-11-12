@@ -6,7 +6,7 @@ import ru.practicum.shareit.item.dto.CommentDTO;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class CommentMapper {
@@ -15,7 +15,7 @@ public final class CommentMapper {
                 .item(item)
                 .authorName(commentDto.getAuthorName())
                 .text(commentDto.getText())
-                .created(Instant.now())
+                .created(LocalDateTime.now())
                 .build();
     }
 

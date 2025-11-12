@@ -1,116 +1,134 @@
 package user;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.web.util.UriTemplateHandler;
 import ru.practicum.shareit.ShareItGateway;
 import ru.practicum.shareit.user.UserClient;
 import ru.practicum.shareit.user.dto.UserDTO;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.mock;
+import java.util.function.Supplier;
+
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = ShareItGateway.class)
 @AutoConfigureMockMvc
+@ExtendWith(MockitoExtension.class)
 class UserClientTest {
-    @Test
-    void saveUserShouldReturnResponse() {
-        UserClient userClient = mock(UserClient.class);
-        UserDTO userDTO = UserDTO.builder().build();
-        when(userClient.saveUser(Mockito.any(UserDTO.class)))
-                .thenReturn(ResponseEntity.ok().build());
+    @Mock
+    private RestTemplate restTemplate;
 
-        ResponseEntity<?> response = userClient.saveUser(userDTO);
+    @Mock
+    private RestTemplateBuilder builder;
 
-        assertNotNull(response);
+    private UserClient userClient;
+    private static final String BASE_URL = "http://test-server";
+    private static final String API_PREFIX = "/users";
+
+    @BeforeEach
+    void setUp() {
+        DefaultUriBuilderFactory uriBuilderFactory = new DefaultUriBuilderFactory(BASE_URL + API_PREFIX);
+        when(builder.uriTemplateHandler(Mockito.any(UriTemplateHandler.class)))
+                .thenReturn(builder);
+        when(builder.requestFactory(Mockito.any(Supplier.class)))
+                .thenReturn(builder);
+        when(builder.build())
+                .thenReturn(restTemplate);
+        builder.uriTemplateHandler(uriBuilderFactory);
+
+        userClient = new UserClient(BASE_URL, builder);
+
+        ResponseEntity<Object> mockResponse = ResponseEntity.ok().body("mock-response");
+        when(restTemplate.exchange(
+                Mockito.anyString(),
+                Mockito.any(HttpMethod.class),
+                Mockito.any(),
+                Mockito.eq(Object.class)
+        )).thenReturn(mockResponse);
     }
 
     @Test
-    void getUserShouldReturnResponse() {
-        UserClient userClient = mock(UserClient.class);
-        when(userClient.getUser(Mockito.anyLong()))
-                .thenReturn(ResponseEntity.ok().build());
-
-        ResponseEntity<?> response = userClient.getUser(1L);
-
-        assertNotNull(response);
+    void getUserByIdShouldCallGetWithIdInPath() {
+        long userId = 1L;
+        userClient.getUser(userId);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq("/1"),
+                Mockito.eq(HttpMethod.GET),
+                Mockito.any(),
+                Mockito.eq(Object.class)
+        );
     }
 
     @Test
-    void updateUserShouldReturnResponse() {
-        UserClient userClient = mock(UserClient.class);
-        UserDTO userDTO = UserDTO.builder().build();
-        when(userClient.updateUser(Mockito.anyLong(), Mockito.any(UserDTO.class)))
-                .thenReturn(ResponseEntity.ok().build());
-
-        ResponseEntity<?> response = userClient.updateUser(1L, userDTO);
-
-        assertNotNull(response);
+    void getAllUsersShouldCallGetWithEmptyPath() {
+        userClient.getAllUsers();
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq(""),
+                Mockito.eq(HttpMethod.GET),
+                Mockito.any(),
+                Mockito.eq(Object.class)
+        );
     }
 
     @Test
-    void deleteUserShouldReturnResponse() {
-        UserClient userClient = mock(UserClient.class);
-        when(userClient.deleteUser(Mockito.anyLong()))
-                .thenReturn(ResponseEntity.ok().build());
-
-        ResponseEntity<?> response = userClient.deleteUser(1L);
-
-        assertNotNull(response);
-    }
-
-    @Test
-    void updateUserWithOnlyNameShouldReturnResponse() {
-        UserClient userClient = mock(UserClient.class);
-        UserDTO nameOnlyUpdate = UserDTO.builder().name("Updated Name").build();
-        when(userClient.updateUser(Mockito.anyLong(), Mockito.any(UserDTO.class)))
-                .thenReturn(ResponseEntity.ok().build());
-
-        ResponseEntity<?> response = userClient.updateUser(1L, nameOnlyUpdate);
-
-        assertNotNull(response);
-    }
-
-    @Test
-    void updateUserWithOnlyEmailShouldReturnResponse() {
-        UserClient userClient = mock(UserClient.class);
-        UserDTO emailOnlyUpdate = UserDTO.builder().email("updated@email.com").build();
-        when(userClient.updateUser(Mockito.anyLong(), Mockito.any(UserDTO.class)))
-                .thenReturn(ResponseEntity.ok().build());
-
-        ResponseEntity<?> response = userClient.updateUser(1L, emailOnlyUpdate);
-
-        assertNotNull(response);
-    }
-
-    @Test
-    void updateUserWithEmptyBodyShouldReturnResponse() {
-        UserClient userClient = mock(UserClient.class);
-        UserDTO emptyUpdate = UserDTO.builder().build();
-        when(userClient.updateUser(Mockito.anyLong(), Mockito.any(UserDTO.class)))
-                .thenReturn(ResponseEntity.ok().build());
-
-        ResponseEntity<?> response = userClient.updateUser(1L, emptyUpdate);
-
-        assertNotNull(response);
-    }
-
-    @Test
-    void saveUserWithFullDataShouldReturnResponse() {
-        UserClient userClient = mock(UserClient.class);
-        UserDTO fullUserDTO = UserDTO.builder()
-                .id(1L)
-                .name("Full User")
-                .email("full@email.com")
+    void saveUserShouldCallPostWithUserData() {
+        UserDTO newUserDto = UserDTO.builder()
+                .name("Test User")
+                .email("test@example.com")
                 .build();
-        when(userClient.saveUser(Mockito.any(UserDTO.class)))
-                .thenReturn(ResponseEntity.ok().build());
 
-        ResponseEntity<?> response = userClient.saveUser(fullUserDTO);
+        userClient.saveUser(newUserDto);
 
-        assertNotNull(response);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq(""),
+                Mockito.eq(HttpMethod.POST),
+                Mockito.argThat((HttpEntity<?> entity) ->
+                        entity.getBody() == newUserDto),
+                Mockito.eq(Object.class)
+        );
+    }
+
+    @Test
+    void updateUserShouldCallPatchWithUserIdAndUpdateData() {
+        long userId = 1L;
+
+        UserDTO updateUserDto = UserDTO.builder()
+                .name("Updated User")
+                .email("updated@example.com")
+                .build();
+
+        userClient.updateUser(userId, updateUserDto);
+
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq("/1"),
+                Mockito.eq(HttpMethod.PATCH),
+                Mockito.argThat((HttpEntity<?> entity) ->
+                        entity.getBody() == updateUserDto),
+                Mockito.eq(Object.class)
+        );
+    }
+
+    @Test
+    void deleteUserShouldCallDeleteWithIdInPath() {
+        long userId = 1L;
+        userClient.deleteUser(userId);
+        Mockito.verify(restTemplate).exchange(
+                Mockito.eq("/1"),
+                Mockito.eq(HttpMethod.DELETE),
+                Mockito.any(),
+                Mockito.eq(Object.class)
+        );
     }
 }
