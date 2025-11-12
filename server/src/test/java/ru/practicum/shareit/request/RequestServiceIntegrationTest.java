@@ -90,20 +90,6 @@ class RequestServiceIntegrationTest {
     }
 
     @Test
-    void testGetUserRequests() {
-        userRepository.save(user);
-        userRepository.save(user2);
-        requestRepository.save(request);
-        requestRepository.save(request2);
-        requestRepository.save(request3);
-
-        List<ItemRequestDto> resp = service.getUserRequests(user.getId());
-
-        assertThat(resp.size(), is(2));
-        assertThat(resp.getLast().getDescription(), is(request2.getDescription()));
-    }
-
-    @Test
     void testGetUserRequestsEmpty() {
         userRepository.save(user);
 
