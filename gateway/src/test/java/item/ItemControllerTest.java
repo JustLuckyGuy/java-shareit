@@ -410,4 +410,46 @@ class ItemControllerTest {
                 .andExpect(jsonPath("description", is("Updated Description")));
     }
 
+    @Test
+    void testUpdateWithPartialData() throws Exception {
+
+        ItemDto nameOnlyUpdate = ItemDto.builder()
+                .name("Updated Name")
+                .description(dto.getDescription())
+                .available(dto.getAvailable())
+                .build();
+
+        Mockito.when(client.updateItem(Mockito.anyLong(), Mockito.anyLong(), Mockito.any(ItemDto.class)))
+                .thenReturn(ResponseEntity.ok(dto));
+
+        mvc.perform(patch("/items/1")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(nameOnlyUpdate)))
+                .andExpect(status().isOk());
+
+        ItemDto descOnlyUpdate = ItemDto.builder()
+                .name(dto.getName())
+                .description("Updated Desc")
+                .available(dto.getAvailable())
+                .build();
+
+        mvc.perform(patch("/items/1")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(descOnlyUpdate)))
+                .andExpect(status().isOk());
+
+        ItemDto availOnlyUpdate = ItemDto.builder()
+                .name(dto.getName())
+                .description(dto.getDescription())
+                .available(false)
+                .build();
+
+        mvc.perform(patch("/items/1")
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(availOnlyUpdate)))
+                .andExpect(status().isOk());
+    }
 }

@@ -271,4 +271,36 @@ class BookingControllerTest {
                         .header("X-Sharer-User-Id", 123))
                 .andExpect(status().is4xxClientError());
     }
+
+    @Test
+    void testGetUserBookings_WithDifferentStates() throws Exception {
+        for (StatusBook state : StatusBook.values()) {
+            Mockito.when(client.getUserBookings(Mockito.anyLong(), Mockito.eq(state)))
+                    .thenReturn(ResponseEntity.ok(Collections.emptyList()));
+
+            mvc.perform(get("/bookings?state=" + state.name().toLowerCase())
+                            .header("X-Sharer-User-Id", 123))
+                    .andExpect(status().isOk());
+
+            Mockito.verify(client, Mockito.times(1))
+                    .getUserBookings(123, state);
+            Mockito.reset(client);
+        }
+    }
+
+    @Test
+    void testChangeBookingStatus_WithDifferentParameters() throws Exception {
+        for (boolean approved : new boolean[]{true, false}) {
+            Mockito.when(client.changeBookingStatus(Mockito.anyLong(), Mockito.anyLong(), Mockito.eq(approved)))
+                    .thenReturn(ResponseEntity.ok(dto));
+
+            mvc.perform(patch("/bookings/1?approved=" + approved)
+                            .header("X-Sharer-User-Id", 1))
+                    .andExpect(status().isOk());
+
+            Mockito.verify(client, Mockito.times(1))
+                    .changeBookingStatus(1, 1L, approved);
+            Mockito.reset(client);
+        }
+    }
 }
