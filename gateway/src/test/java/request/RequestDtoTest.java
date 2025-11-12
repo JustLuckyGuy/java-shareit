@@ -1,9 +1,11 @@
 package request;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.json.AutoConfigureJsonTesters;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.json.JacksonTester;
+import org.springframework.boot.test.json.JsonContent;
 import ru.practicum.shareit.ShareItGateway;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
@@ -14,9 +16,10 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = ShareItGateway.class)
+@AutoConfigureJsonTesters
 class RequestDtoTest {
     @Autowired
-    private ObjectMapper objectMapper;
+    private JacksonTester<ItemRequestDto> json;
 
     @Test
     void shouldSerializeAndDeserializeItemRequestDto() throws Exception {
@@ -34,15 +37,15 @@ class RequestDtoTest {
                 .created(LocalDateTime.of(2023, 10, 1, 10, 0))
                 .build();
 
-        String json = objectMapper.writeValueAsString(itemRequestDto);
-        ItemRequestDto deserialized = objectMapper.readValue(json, ItemRequestDto.class);
+        JsonContent<ItemRequestDto> result = json.write(itemRequestDto);
+        ItemRequestDto deserialized = json.parseObject(result.getJson());
 
         assertThat(deserialized.getId()).isEqualTo(1L);
         assertThat(deserialized.getDescription()).isEqualTo("Need a drill for home renovation");
         assertThat(deserialized.getCreated()).isEqualTo(LocalDateTime.of(2023, 10, 1, 10, 0));
         assertThat(deserialized.getItems()).hasSize(1);
-        assertThat(deserialized.getItems().get(0).getName()).isEqualTo("Test Item");
-        assertThat(deserialized.getItems().get(0).getDescription()).isEqualTo("Test Description");
+        assertThat(deserialized.getItems().getFirst().getName()).isEqualTo("Test Item");
+        assertThat(deserialized.getItems().getFirst().getDescription()).isEqualTo("Test Description");
     }
 
     @Test
@@ -53,24 +56,18 @@ class RequestDtoTest {
                 .created(LocalDateTime.of(2023, 10, 1, 10, 0))
                 .build();
 
-        String json = objectMapper.writeValueAsString(itemRequestDto);
+        JsonContent<ItemRequestDto> result = json.write(itemRequestDto);
 
-        assertThat(json).contains("\"id\":1");
-        assertThat(json).contains("\"description\":\"Need a drill for home renovation\"");
-        assertThat(json).contains("\"created\":\"2023-10-01T10:00:00\"");
+        assertThat(result).extractingJsonPathNumberValue("$.id").isEqualTo(1);
+        assertThat(result).extractingJsonPathStringValue("$.description").isEqualTo("Need a drill for home renovation");
+        assertThat(result).extractingJsonPathStringValue("$.created").isEqualTo("2023-10-01T10:00:00");
     }
 
     @Test
     void shouldDeserializeItemRequestDtoFromJson() throws Exception {
-        String json = """
-                {
-                    "id": 1,
-                    "description": "Need a drill for home renovation",
-                    "created": "2023-10-01T10:00:00"
-                }
-                """;
+        String content = "{\"id\":1,\"description\":\"Need a drill for home renovation\",\"created\":\"2023-10-01T10:00:00\"}";
 
-        ItemRequestDto itemRequestDto = objectMapper.readValue(json, ItemRequestDto.class);
+        ItemRequestDto itemRequestDto = json.parseObject(content);
 
         assertThat(itemRequestDto.getId()).isEqualTo(1L);
         assertThat(itemRequestDto.getDescription()).isEqualTo("Need a drill for home renovation");
@@ -80,9 +77,9 @@ class RequestDtoTest {
 
     @Test
     void shouldHandleNullFieldsInItemRequestDto() throws Exception {
-        String json = "{\"description\":\"Test description\"}";
+        String content = "{\"description\":\"Test description\"}";
 
-        ItemRequestDto itemRequestDto = objectMapper.readValue(json, ItemRequestDto.class);
+        ItemRequestDto itemRequestDto = json.parseObject(content);
 
         assertThat(itemRequestDto.getDescription()).isEqualTo("Test description");
         assertThat(itemRequestDto.getId()).isNull();
@@ -92,29 +89,9 @@ class RequestDtoTest {
 
     @Test
     void shouldDeserializeItemRequestDtoWithItemsList() throws Exception {
-        String json = """
-                {
-                    "id": 1,
-                    "description": "Need a drill for home renovation",
-                    "created": "2023-10-01T10:00:00",
-                    "items": [
-                        {
-                            "id": 1,
-                            "name": "Drill",
-                            "description": "Powerful drill",
-                            "available": true
-                        },
-                        {
-                            "id": 2,
-                            "name": "Hammer",
-                            "description": "Heavy duty hammer",
-                            "available": false
-                        }
-                    ]
-                }
-                """;
+        String content = "{\"id\":1,\"description\":\"Need a drill for home renovation\",\"created\":\"2023-10-01T10:00:00\",\"items\":[{\"id\":1,\"name\":\"Drill\",\"description\":\"Powerful drill\",\"available\":true},{\"id\":2,\"name\":\"Hammer\",\"description\":\"Heavy duty hammer\",\"available\":false}]}";
 
-        ItemRequestDto itemRequestDto = objectMapper.readValue(json, ItemRequestDto.class);
+        ItemRequestDto itemRequestDto = json.parseObject(content);
 
         assertThat(itemRequestDto.getId()).isEqualTo(1L);
         assertThat(itemRequestDto.getDescription()).isEqualTo("Need a drill for home renovation");
@@ -128,16 +105,9 @@ class RequestDtoTest {
 
     @Test
     void shouldHandleEmptyItemsList() throws Exception {
-        String json = """
-                {
-                    "id": 1,
-                    "description": "Need a drill for home renovation",
-                    "created": "2023-10-01T10:00:00",
-                    "items": []
-                }
-                """;
+        String content = "{\"id\":1,\"description\":\"Need a drill for home renovation\",\"created\":\"2023-10-01T10:00:00\",\"items\":[]}";
 
-        ItemRequestDto itemRequestDto = objectMapper.readValue(json, ItemRequestDto.class);
+        ItemRequestDto itemRequestDto = json.parseObject(content);
 
         assertThat(itemRequestDto.getId()).isEqualTo(1L);
         assertThat(itemRequestDto.getDescription()).isEqualTo("Need a drill for home renovation");
@@ -154,11 +124,11 @@ class RequestDtoTest {
                 .created(LocalDateTime.of(2023, 10, 1, 10, 0))
                 .build();
 
-        String json = objectMapper.writeValueAsString(itemRequestDto);
-        ItemRequestDto deserialized = objectMapper.readValue(json, ItemRequestDto.class);
+        JsonContent<ItemRequestDto> result = json.write(itemRequestDto);
+        ItemRequestDto deserialized = json.parseObject(result.getJson());
 
         assertThat(deserialized.getDescription()).isEqualTo(longDescription);
-        assertThat(deserialized.getDescription().length()).isEqualTo(1000);
+        assertThat(deserialized.getDescription()).hasSize(1000);
     }
 
     @Test
@@ -170,22 +140,17 @@ class RequestDtoTest {
                 .created(LocalDateTime.of(2023, 10, 1, 10, 0))
                 .build();
 
-        String json = objectMapper.writeValueAsString(itemRequestDto);
-        ItemRequestDto deserialized = objectMapper.readValue(json, ItemRequestDto.class);
+        JsonContent<ItemRequestDto> result = json.write(itemRequestDto);
+        ItemRequestDto deserialized = json.parseObject(result.getJson());
 
         assertThat(deserialized.getDescription()).isEqualTo(descriptionWithSpecialChars);
     }
 
     @Test
     void shouldHandleNullCreatedDate() throws Exception {
-        String json = """
-                {
-                    "id": 1,
-                    "description": "Test description"
-                }
-                """;
+        String content = "{\"id\":1,\"description\":\"Test description\"}";
 
-        ItemRequestDto itemRequestDto = objectMapper.readValue(json, ItemRequestDto.class);
+        ItemRequestDto itemRequestDto = json.parseObject(content);
 
         assertThat(itemRequestDto.getId()).isEqualTo(1L);
         assertThat(itemRequestDto.getDescription()).isEqualTo("Test description");
@@ -194,30 +159,30 @@ class RequestDtoTest {
 
     @Test
     void shouldHandleFutureCreatedDate() throws Exception {
-        LocalDateTime futureDate = LocalDateTime.now().plusDays(1);
+        LocalDateTime futureDate = LocalDateTime.of(2024, 1, 1, 10, 0);
         ItemRequestDto itemRequestDto = ItemRequestDto.builder()
                 .id(1L)
                 .description("Future request")
                 .created(futureDate)
                 .build();
 
-        String json = objectMapper.writeValueAsString(itemRequestDto);
-        ItemRequestDto deserialized = objectMapper.readValue(json, ItemRequestDto.class);
+        JsonContent<ItemRequestDto> result = json.write(itemRequestDto);
+        ItemRequestDto deserialized = json.parseObject(result.getJson());
 
         assertThat(deserialized.getCreated()).isEqualTo(futureDate);
     }
 
     @Test
     void shouldHandlePastCreatedDate() throws Exception {
-        LocalDateTime pastDate = LocalDateTime.now().minusDays(1);
+        LocalDateTime pastDate = LocalDateTime.of(2022, 1, 1, 10, 0);
         ItemRequestDto itemRequestDto = ItemRequestDto.builder()
                 .id(1L)
                 .description("Past request")
                 .created(pastDate)
                 .build();
 
-        String json = objectMapper.writeValueAsString(itemRequestDto);
-        ItemRequestDto deserialized = objectMapper.readValue(json, ItemRequestDto.class);
+        JsonContent<ItemRequestDto> result = json.write(itemRequestDto);
+        ItemRequestDto deserialized = json.parseObject(result.getJson());
 
         assertThat(deserialized.getCreated()).isEqualTo(pastDate);
     }
@@ -229,8 +194,8 @@ class RequestDtoTest {
                 .created(LocalDateTime.of(2023, 10, 1, 10, 0))
                 .build();
 
-        String json = objectMapper.writeValueAsString(itemRequestDto);
-        ItemRequestDto deserialized = objectMapper.readValue(json, ItemRequestDto.class);
+        JsonContent<ItemRequestDto> result = json.write(itemRequestDto);
+        ItemRequestDto deserialized = json.parseObject(result.getJson());
 
         assertThat(deserialized.getId()).isNull();
         assertThat(deserialized.getDescription()).isEqualTo("New request without ID");
@@ -239,52 +204,16 @@ class RequestDtoTest {
 
     @Test
     void shouldHandleComplexNestedItems() throws Exception {
-        String json = """
-                {
-                    "id": 1,
-                    "description": "Complex request with nested items",
-                    "created": "2023-10-01T10:00:00",
-                    "items": [
-                        {
-                            "id": 1,
-                            "name": "Item 1",
-                            "description": "Description 1",
-                            "available": true,
-                            "request": 1,
-                            "nextBooking": {
-                                "id": 10,
-                                "bookerId": 100,
-                                "start": "2023-10-02T10:00:00",
-                                "end": "2023-10-03T10:00:00"
-                            },
-                            "lastBooking": {
-                                "id": 11,
-                                "bookerId": 101,
-                                "start": "2023-09-25T10:00:00",
-                                "end": "2023-09-26T10:00:00"
-                            },
-                            "comments": [
-                                {
-                                    "id": 1,
-                                    "authorName": "User1",
-                                    "text": "Great item!",
-                                    "created": "2023-09-20T10:00:00"
-                                }
-                            ],
-                            "requestId": 1
-                        }
-                    ]
-                }
-                """;
+        String content = "{\"id\":1,\"description\":\"Complex request with nested items\",\"created\":\"2023-10-01T10:00:00\",\"items\":[{\"id\":1,\"name\":\"Item 1\",\"description\":\"Description 1\",\"available\":true,\"request\":1,\"nextBooking\":{\"id\":10,\"bookerId\":100,\"start\":\"2023-10-02T10:00:00\",\"end\":\"2023-10-03T10:00:00\"},\"lastBooking\":{\"id\":11,\"bookerId\":101,\"start\":\"2023-09-25T10:00:00\",\"end\":\"2023-09-26T10:00:00\"},\"comments\":[{\"id\":1,\"authorName\":\"User1\",\"text\":\"Great item!\",\"created\":\"2023-09-20T10:00:00\"}],\"requestId\":1}]}";
 
-        ItemRequestDto itemRequestDto = objectMapper.readValue(json, ItemRequestDto.class);
+        ItemRequestDto itemRequestDto = json.parseObject(content);
 
         assertThat(itemRequestDto.getId()).isEqualTo(1L);
         assertThat(itemRequestDto.getDescription()).isEqualTo("Complex request with nested items");
         assertThat(itemRequestDto.getCreated()).isEqualTo(LocalDateTime.of(2023, 10, 1, 10, 0));
         assertThat(itemRequestDto.getItems()).hasSize(1);
 
-        ItemDto nestedItem = itemRequestDto.getItems().get(0);
+        ItemDto nestedItem = itemRequestDto.getItems().getFirst();
         assertThat(nestedItem.getName()).isEqualTo("Item 1");
         assertThat(nestedItem.getAvailable()).isTrue();
         assertThat(nestedItem.getNextBooking()).isNotNull();
@@ -292,6 +221,6 @@ class RequestDtoTest {
         assertThat(nestedItem.getLastBooking()).isNotNull();
         assertThat(nestedItem.getLastBooking().getId()).isEqualTo(11L);
         assertThat(nestedItem.getComments()).hasSize(1);
-        assertThat(nestedItem.getComments().get(0).getAuthorName()).isEqualTo("User1");
+        assertThat(nestedItem.getComments().getFirst().getAuthorName()).isEqualTo("User1");
     }
 }

@@ -1,9 +1,12 @@
 package item;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.json.AutoConfigureJsonTesters;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.json.JacksonTester;
+import org.springframework.boot.test.json.JsonContent;
 import ru.practicum.shareit.ShareItGateway;
 import ru.practicum.shareit.item.dto.BookingShortDto;
 import ru.practicum.shareit.item.dto.CommentDTO;
@@ -15,10 +18,16 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = ShareItGateway.class)
+@AutoConfigureJsonTesters
 class ItemDtoTest {
     @Autowired
-    private ObjectMapper objectMapper;
+    private JacksonTester<BookingShortDto> bookingShortDtoJson;
 
+    @Autowired
+    private JacksonTester<CommentDTO> commentDtoJson;
+
+    @Autowired
+    private JacksonTester<ItemDto> itemDtoJson;
 
     @Test
     void shouldSerializeAndDeserializeBookingShortDto() throws Exception {
@@ -29,8 +38,8 @@ class ItemDtoTest {
                 .end(LocalDateTime.of(2023, 10, 2, 10, 0))
                 .build();
 
-        String json = objectMapper.writeValueAsString(bookingShortDto);
-        BookingShortDto deserialized = objectMapper.readValue(json, BookingShortDto.class);
+        JsonContent<BookingShortDto> result = bookingShortDtoJson.write(bookingShortDto);
+        BookingShortDto deserialized = bookingShortDtoJson.parseObject(result.getJson());
 
         assertThat(deserialized.getId()).isEqualTo(1L);
         assertThat(deserialized.getBookerId()).isEqualTo(2L);
@@ -40,9 +49,9 @@ class ItemDtoTest {
 
     @Test
     void shouldHandleNullFieldsInBookingShortDto() throws Exception {
-        String json = "{\"id\":1}";
+        String content = "{\"id\":1}";
 
-        BookingShortDto bookingShortDto = objectMapper.readValue(json, BookingShortDto.class);
+        BookingShortDto bookingShortDto = bookingShortDtoJson.parseObject(content);
 
         assertThat(bookingShortDto.getId()).isEqualTo(1L);
         assertThat(bookingShortDto.getBookerId()).isNull();
@@ -59,14 +68,13 @@ class ItemDtoTest {
                 .end(LocalDateTime.of(2023, 10, 2, 10, 0))
                 .build();
 
-        String json = objectMapper.writeValueAsString(bookingShortDto);
+        JsonContent<BookingShortDto> result = bookingShortDtoJson.write(bookingShortDto);
 
-        assertThat(json).contains("\"id\":1");
-        assertThat(json).contains("\"bookerId\":2");
-        assertThat(json).contains("\"start\":\"2023-10-01T10:00:00\"");
-        assertThat(json).contains("\"end\":\"2023-10-02T10:00:00\"");
+        assertThat(result).extractingJsonPathNumberValue("$.id").isEqualTo(1);
+        assertThat(result).extractingJsonPathNumberValue("$.bookerId").isEqualTo(2);
+        assertThat(result).extractingJsonPathStringValue("$.start").isEqualTo("2023-10-01T10:00:00");
+        assertThat(result).extractingJsonPathStringValue("$.end").isEqualTo("2023-10-02T10:00:00");
     }
-
 
     @Test
     void shouldSerializeAndDeserializeCommentDTO() throws Exception {
@@ -77,8 +85,8 @@ class ItemDtoTest {
                 .created("2023-10-01T10:00:00")
                 .build();
 
-        String json = objectMapper.writeValueAsString(commentDTO);
-        CommentDTO deserialized = objectMapper.readValue(json, CommentDTO.class);
+        JsonContent<CommentDTO> result = commentDtoJson.write(commentDTO);
+        CommentDTO deserialized = commentDtoJson.parseObject(result.getJson());
 
         assertThat(deserialized.getId()).isEqualTo(1L);
         assertThat(deserialized.getAuthorName()).isEqualTo("John Doe");
@@ -88,9 +96,9 @@ class ItemDtoTest {
 
     @Test
     void shouldHandleNullFieldsInCommentDTO() throws Exception {
-        String json = "{\"id\":1,\"text\":\"Test comment\"}";
+        String content = "{\"id\":1,\"text\":\"Test comment\"}";
 
-        CommentDTO commentDTO = objectMapper.readValue(json, CommentDTO.class);
+        CommentDTO commentDTO = commentDtoJson.parseObject(content);
 
         assertThat(commentDTO.getId()).isEqualTo(1L);
         assertThat(commentDTO.getText()).isEqualTo("Test comment");
@@ -107,26 +115,25 @@ class ItemDtoTest {
                 .created("2023-10-01T10:00:00")
                 .build();
 
-        String json = objectMapper.writeValueAsString(commentDTO);
+        JsonContent<CommentDTO> result = commentDtoJson.write(commentDTO);
 
-        assertThat(json).contains("\"id\":1");
-        assertThat(json).contains("\"authorName\":\"John Doe\"");
-        assertThat(json).contains("\"text\":\"Great item!\"");
-        assertThat(json).contains("\"created\":\"2023-10-01T10:00:00\"");
+        assertThat(result).extractingJsonPathNumberValue("$.id").isEqualTo(1);
+        assertThat(result).extractingJsonPathStringValue("$.authorName").isEqualTo("John Doe");
+        assertThat(result).extractingJsonPathStringValue("$.text").isEqualTo("Great item!");
+        assertThat(result).extractingJsonPathStringValue("$.created").isEqualTo("2023-10-01T10:00:00");
     }
 
     @Test
     void shouldDeserializeCommentDTOWithOnlyRequiredFields() throws Exception {
-        String json = "{\"text\":\"Required text\"}";
+        String content = "{\"text\":\"Required text\"}";
 
-        CommentDTO commentDTO = objectMapper.readValue(json, CommentDTO.class);
+        CommentDTO commentDTO = commentDtoJson.parseObject(content);
 
         assertThat(commentDTO.getText()).isEqualTo("Required text");
-        assertThat(commentDTO.getId()).isEqualTo(0L);
+        assertThat(commentDTO.getId()).isZero();
         assertThat(commentDTO.getAuthorName()).isNull();
         assertThat(commentDTO.getCreated()).isNull();
     }
-
 
     @Test
     void shouldSerializeAndDeserializeItemDto() throws Exception {
@@ -163,8 +170,8 @@ class ItemDtoTest {
                 .requestId(6L)
                 .build();
 
-        String json = objectMapper.writeValueAsString(itemDto);
-        ItemDto deserialized = objectMapper.readValue(json, ItemDto.class);
+        JsonContent<ItemDto> result = itemDtoJson.write(itemDto);
+        ItemDto deserialized = itemDtoJson.parseObject(result.getJson());
 
         assertThat(deserialized.getId()).isEqualTo(1L);
         assertThat(deserialized.getName()).isEqualTo("Test Item");
@@ -173,20 +180,19 @@ class ItemDtoTest {
         assertThat(deserialized.getRequest()).isEqualTo(5L);
         assertThat(deserialized.getRequestId()).isEqualTo(6L);
 
-
         assertThat(deserialized.getNextBooking()).isNotNull();
         assertThat(deserialized.getNextBooking().getId()).isEqualTo(1L);
         assertThat(deserialized.getLastBooking()).isNotNull();
         assertThat(deserialized.getLastBooking().getId()).isEqualTo(3L);
         assertThat(deserialized.getComments()).hasSize(1);
-        assertThat(deserialized.getComments().get(0).getText()).isEqualTo("Great item!");
+        assertThat(deserialized.getComments().getFirst().getText()).isEqualTo("Great item!");
     }
 
     @Test
     void shouldHandleNullFieldsInItemDto() throws Exception {
-        String json = "{\"id\":1,\"name\":\"Test Item\",\"description\":\"Test Description\",\"available\":true}";
+        String content = "{\"id\":1,\"name\":\"Test Item\",\"description\":\"Test Description\",\"available\":true}";
 
-        ItemDto itemDto = objectMapper.readValue(json, ItemDto.class);
+        ItemDto itemDto = itemDtoJson.parseObject(content);
 
         assertThat(itemDto.getId()).isEqualTo(1L);
         assertThat(itemDto.getName()).isEqualTo("Test Item");
@@ -210,50 +216,21 @@ class ItemDtoTest {
                 .requestId(6L)
                 .build();
 
-        String json = objectMapper.writeValueAsString(itemDto);
+        JsonContent<ItemDto> result = itemDtoJson.write(itemDto);
 
-        assertThat(json).contains("\"id\":1");
-        assertThat(json).contains("\"name\":\"Test Item\"");
-        assertThat(json).contains("\"description\":\"Test Description\"");
-        assertThat(json).contains("\"available\":true");
-        assertThat(json).contains("\"request\":5");
-        assertThat(json).contains("\"requestId\":6");
+        assertThat(result).extractingJsonPathNumberValue("$.id").isEqualTo(1);
+        assertThat(result).extractingJsonPathStringValue("$.name").isEqualTo("Test Item");
+        assertThat(result).extractingJsonPathStringValue("$.description").isEqualTo("Test Description");
+        assertThat(result).extractingJsonPathBooleanValue("$.available").isTrue();
+        assertThat(result).extractingJsonPathNumberValue("$.request").isEqualTo(5);
+        assertThat(result).extractingJsonPathNumberValue("$.requestId").isEqualTo(6);
     }
 
     @Test
     void shouldDeserializeItemDtoWithNestedObjects() throws Exception {
-        String json = """
-                {
-                    "id": 1,
-                    "name": "Test Item",
-                    "description": "Test Description",
-                    "available": true,
-                    "request": 5,
-                    "nextBooking": {
-                        "id": 1,
-                        "bookerId": 2,
-                        "start": "2023-10-01T10:00:00",
-                        "end": "2023-10-02T10:00:00"
-                    },
-                    "lastBooking": {
-                        "id": 3,
-                        "bookerId": 4,
-                        "start": "2023-10-03T10:00:00",
-                        "end": "2023-10-04T10:00:00"
-                    },
-                    "comments": [
-                        {
-                            "id": 1,
-                            "authorName": "John Doe",
-                            "text": "Great item!",
-                            "created": "2023-10-01T10:00:00"
-                        }
-                    ],
-                    "requestId": 6
-                }
-                """;
+        String content = "{\"id\":1,\"name\":\"Test Item\",\"description\":\"Test Description\",\"available\":true,\"request\":5,\"nextBooking\":{\"id\":1,\"bookerId\":2,\"start\":\"2023-10-01T10:00:00\",\"end\":\"2023-10-02T10:00:00\"},\"lastBooking\":{\"id\":3,\"bookerId\":4,\"start\":\"2023-10-03T10:00:00\",\"end\":\"2023-10-04T10:00:00\"},\"comments\":[{\"id\":1,\"authorName\":\"John Doe\",\"text\":\"Great item!\",\"created\":\"2023-10-01T10:00:00\"}],\"requestId\":6}";
 
-        ItemDto itemDto = objectMapper.readValue(json, ItemDto.class);
+        ItemDto itemDto = itemDtoJson.parseObject(content);
 
         assertThat(itemDto.getId()).isEqualTo(1L);
         assertThat(itemDto.getName()).isEqualTo("Test Item");
@@ -262,7 +239,6 @@ class ItemDtoTest {
         assertThat(itemDto.getRequest()).isEqualTo(5L);
         assertThat(itemDto.getRequestId()).isEqualTo(6L);
 
-
         assertThat(itemDto.getNextBooking()).isNotNull();
         assertThat(itemDto.getNextBooking().getId()).isEqualTo(1L);
         assertThat(itemDto.getNextBooking().getBookerId()).isEqualTo(2L);
@@ -270,23 +246,15 @@ class ItemDtoTest {
         assertThat(itemDto.getLastBooking().getId()).isEqualTo(3L);
         assertThat(itemDto.getLastBooking().getBookerId()).isEqualTo(4L);
         assertThat(itemDto.getComments()).hasSize(1);
-        assertThat(itemDto.getComments().get(0).getAuthorName()).isEqualTo("John Doe");
-        assertThat(itemDto.getComments().get(0).getText()).isEqualTo("Great item!");
+        assertThat(itemDto.getComments().getFirst().getAuthorName()).isEqualTo("John Doe");
+        assertThat(itemDto.getComments().getFirst().getText()).isEqualTo("Great item!");
     }
 
     @Test
     void shouldHandleEmptyCommentsListInItemDto() throws Exception {
-        String json = """
-                {
-                    "id": 1,
-                    "name": "Test Item",
-                    "description": "Test Description",
-                    "available": true,
-                    "comments": []
-                }
-                """;
+        String content = "{\"id\":1,\"name\":\"Test Item\",\"description\":\"Test Description\",\"available\":true,\"comments\":[]}";
 
-        ItemDto itemDto = objectMapper.readValue(json, ItemDto.class);
+        ItemDto itemDto = itemDtoJson.parseObject(content);
 
         assertThat(itemDto.getId()).isEqualTo(1L);
         assertThat(itemDto.getName()).isEqualTo("Test Item");
@@ -297,15 +265,9 @@ class ItemDtoTest {
 
     @Test
     void shouldHandleNullBooleanAvailableInItemDto() throws Exception {
-        String json = """
-                {
-                    "id": 1,
-                    "name": "Test Item",
-                    "description": "Test Description"
-                }
-                """;
+        String content = "{\"id\":1,\"name\":\"Test Item\",\"description\":\"Test Description\"}";
 
-        ItemDto itemDto = objectMapper.readValue(json, ItemDto.class);
+        ItemDto itemDto = itemDtoJson.parseObject(content);
 
         assertThat(itemDto.getId()).isEqualTo(1L);
         assertThat(itemDto.getName()).isEqualTo("Test Item");
@@ -323,10 +285,10 @@ class ItemDtoTest {
                 .available(true)
                 .build();
 
-        String json = objectMapper.writeValueAsString(itemDto);
-        ItemDto deserialized = objectMapper.readValue(json, ItemDto.class);
+        JsonContent<ItemDto> result = itemDtoJson.write(itemDto);
+        ItemDto deserialized = itemDtoJson.parseObject(result.getJson());
 
         assertThat(deserialized.getName()).isEqualTo(longName);
-        assertThat(deserialized.getName().length()).isEqualTo(100);
+        assertThat(deserialized.getName()).hasSize(100);
     }
 }

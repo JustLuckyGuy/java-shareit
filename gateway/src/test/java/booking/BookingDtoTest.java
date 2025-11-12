@@ -1,9 +1,11 @@
 package booking;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.json.AutoConfigureJsonTesters;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.json.JacksonTester;
+import org.springframework.boot.test.json.JsonContent;
 import ru.practicum.shareit.ShareItGateway;
 import ru.practicum.shareit.booking.dto.BookingRequestDTO;
 import ru.practicum.shareit.booking.dto.StatusBook;
@@ -13,9 +15,10 @@ import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = ShareItGateway.class)
+@AutoConfigureJsonTesters
 class BookingDtoTest {
     @Autowired
-    private ObjectMapper objectMapper;
+    private JacksonTester<BookingRequestDTO> json;
 
     @Test
     void shouldSerializeBookingRequestDTO() throws Exception {
@@ -26,26 +29,19 @@ class BookingDtoTest {
                 .end(LocalDateTime.of(2023, 10, 2, 10, 0))
                 .build();
 
-        String json = objectMapper.writeValueAsString(bookingRequest);
+        JsonContent<BookingRequestDTO> result = json.write(bookingRequest);
 
-        assertThat(json).contains("\"itemId\":1");
-        assertThat(json).contains("\"status\":\"WAITING\"");
-        assertThat(json).contains("\"start\":\"2023-10-01T10:00:00\"");
-        assertThat(json).contains("\"end\":\"2023-10-02T10:00:00\"");
+        assertThat(result).extractingJsonPathNumberValue("$.itemId").isEqualTo(1);
+        assertThat(result).extractingJsonPathStringValue("$.status").isEqualTo("WAITING");
+        assertThat(result).extractingJsonPathStringValue("$.start").isEqualTo("2023-10-01T10:00:00");
+        assertThat(result).extractingJsonPathStringValue("$.end").isEqualTo("2023-10-02T10:00:00");
     }
 
     @Test
     void shouldDeserializeBookingRequestDTO() throws Exception {
-        String json = """
-                {
-                    "itemId": 1,
-                    "status": "APPROVED",
-                    "start": "2023-10-01T10:00:00",
-                    "end": "2023-10-02T10:00:00"
-                }
-                """;
+        String content = "{\"itemId\":1,\"status\":\"APPROVED\",\"start\":\"2023-10-01T10:00:00\",\"end\":\"2023-10-02T10:00:00\"}";
 
-        BookingRequestDTO bookingRequest = objectMapper.readValue(json, BookingRequestDTO.class);
+        BookingRequestDTO bookingRequest = json.parseObject(content);
 
         assertThat(bookingRequest.getItemId()).isEqualTo(1L);
         assertThat(bookingRequest.getStatus()).isEqualTo(StatusBook.APPROVED);
@@ -55,15 +51,9 @@ class BookingDtoTest {
 
     @Test
     void shouldDeserializeWithoutStatus() throws Exception {
-        String json = """
-                {
-                    "itemId": 1,
-                    "start": "2023-10-01T10:00:00",
-                    "end": "2023-10-02T10:00:00"
-                }
-                """;
+        String content = "{\"itemId\":1,\"start\":\"2023-10-01T10:00:00\",\"end\":\"2023-10-02T10:00:00\"}";
 
-        BookingRequestDTO bookingRequest = objectMapper.readValue(json, BookingRequestDTO.class);
+        BookingRequestDTO bookingRequest = json.parseObject(content);
 
         assertThat(bookingRequest.getItemId()).isEqualTo(1L);
         assertThat(bookingRequest.getStatus()).isNull();
@@ -73,13 +63,9 @@ class BookingDtoTest {
 
     @Test
     void shouldHandleNullFields() throws Exception {
-        String json = """
-                {
-                    "itemId": 1
-                }
-                """;
+        String content = "{\"itemId\":1}";
 
-        BookingRequestDTO bookingRequest = objectMapper.readValue(json, BookingRequestDTO.class);
+        BookingRequestDTO bookingRequest = json.parseObject(content);
 
         assertThat(bookingRequest.getItemId()).isEqualTo(1L);
         assertThat(bookingRequest.getStatus()).isNull();
@@ -97,17 +83,15 @@ class BookingDtoTest {
                     .end(LocalDateTime.of(2023, 10, 2, 10, 0))
                     .build();
 
-            String json = objectMapper.writeValueAsString(bookingRequest);
-            BookingRequestDTO deserialized = objectMapper.readValue(json, BookingRequestDTO.class);
-
-            assertThat(deserialized.getStatus()).isEqualTo(status);
+            JsonContent<BookingRequestDTO> result = json.write(bookingRequest);
+            assertThat(result).extractingJsonPathStringValue("$.status").isEqualTo(status.toString());
         }
     }
 
     @Test
     void shouldHandleFutureDates() throws Exception {
-        LocalDateTime futureStart = LocalDateTime.now().plusDays(1);
-        LocalDateTime futureEnd = LocalDateTime.now().plusDays(2);
+        LocalDateTime futureStart = LocalDateTime.of(2023, 12, 1, 10, 0);
+        LocalDateTime futureEnd = LocalDateTime.of(2023, 12, 2, 10, 0);
 
         BookingRequestDTO bookingRequest = BookingRequestDTO.builder()
                 .itemId(1L)
@@ -115,10 +99,9 @@ class BookingDtoTest {
                 .end(futureEnd)
                 .build();
 
-        String json = objectMapper.writeValueAsString(bookingRequest);
-        BookingRequestDTO deserialized = objectMapper.readValue(json, BookingRequestDTO.class);
+        JsonContent<BookingRequestDTO> result = json.write(bookingRequest);
 
-        assertThat(deserialized.getStart()).isEqualTo(futureStart);
-        assertThat(deserialized.getEnd()).isEqualTo(futureEnd);
+        assertThat(result).extractingJsonPathStringValue("$.start").isEqualTo("2023-12-01T10:00:00");
+        assertThat(result).extractingJsonPathStringValue("$.end").isEqualTo("2023-12-02T10:00:00");
     }
 }
