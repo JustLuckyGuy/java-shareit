@@ -203,7 +203,7 @@ class RequestControllerTest {
 
     @Test
     void testPostWithVeryLongDescription() throws Exception {
-        String longDescription = "A".repeat(1000);
+        String longDescription = "A".repeat(510);
         ItemRequestDto longDto = ItemRequestDto.builder()
                 .description(longDescription)
                 .build();

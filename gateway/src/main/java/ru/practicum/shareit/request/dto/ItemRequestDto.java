@@ -2,6 +2,7 @@ package ru.practicum.shareit.request.dto;
 
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 import lombok.Data;
 import ru.practicum.shareit.item.dto.ItemDto;
@@ -14,6 +15,7 @@ import java.util.List;
 public class ItemRequestDto {
     private Long id;
     @NotBlank
+    @Size(max = 511, message = "Слишком длинное описание")
     private String description;
     private List<ItemDto> items;
     private LocalDateTime created;
